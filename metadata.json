@@ -1,0 +1,6 @@
+{
+  "name": "Claude Opus 5.5 — Cinematic Explainer",
+  "description": "Interactive 9:16 60FPS cinematic explainer and 30FPS WebM/MP4 video export studio for Claude Opus 5.5 in Bahasa Indonesia.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
