@@ -1,8 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { OFFICIAL_CLAUDE_LOGO_SRC } from "./engine/assetsData.ts";
 import { initExplainerEngine } from "./engine/explainerRuntime.ts";
+import Gemini4ArgonView from "./Gemini4ArgonView.tsx";
+import Gemini4ArgonVideo3View from "./Gemini4ArgonVideo3View.tsx";
+import { ChatGPTVideo4View } from "./ChatGPTVideo4View.tsx";
+import { GeminiVideo5View } from "./GeminiVideo5View.tsx";
+import { MasterVideo6View } from "./MasterVideo6View.tsx";
+import { ChatGPTVideo7View } from "./ChatGPTVideo7View.tsx";
+import { GrokVideo8View } from "./GrokVideo8View.tsx";
+import { GrokVideo9View } from "./GrokVideo9View.tsx";
+import { ChatGPTVideo10View } from "./ChatGPTVideo10View.tsx";
+import { ClaudeVideo11View } from "./ClaudeVideo11View.tsx";
 
-export default function App() {
+function Video1ClaudeOpusStudio() {
   useEffect(() => {
     const cleanup = initExplainerEngine();
     return () => {
@@ -335,6 +345,58 @@ export default function App() {
                 </span>
               </div>
               <div className="export-card">
+                {/* Audio Export Selector: Dengan Musik / Tanpa Musik / Mute */}
+                <div className="export-audio-selector">
+                  <div className="export-audio-label">
+                    <span>Audio Video:</span>
+                    <span id="exportAudioModeBadge" className="export-audio-badge">
+                      DENGAN MUSIK
+                    </span>
+                  </div>
+                  <div
+                    className="export-audio-options"
+                    role="radiogroup"
+                    aria-label="Pilihan Audio Ekspor"
+                  >
+                    <button
+                      type="button"
+                      className="export-audio-opt active"
+                      id="exportOptWithMusic"
+                      data-mode="with-music"
+                      title="Sertakan lagu soundtrack + SFX sinematik"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                      </svg>
+                      <span>Dengan Musik</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="export-audio-opt"
+                      id="exportOptNoMusic"
+                      data-mode="no-music"
+                      title="Hanya efek suara (SFX) & drone tanpa musik latar"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4.27 3L3 4.27l9 9v.28c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4v-1.73l7.73 7.73L23 21.73 4.27 3zM14 7h4V3h-6v5.18l2 2V7z" />
+                      </svg>
+                      <span>Tanpa Musik</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="export-audio-opt"
+                      id="exportOptMute"
+                      data-mode="mute"
+                      title="Hening total tanpa audio track (video murni)"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+                      </svg>
+                      <span>Mute</span>
+                    </button>
+                  </div>
+                </div>
+
                 <button type="button" className="export-btn" id="exportVideoBtn">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                     <circle cx="12" cy="12" r="8"></circle>
@@ -358,6 +420,7 @@ export default function App() {
                   type="button"
                   className="export-btn mp4-btn"
                   id="convertMp4Btn"
+                  style={{ display: "none" }}
                   disabled
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
@@ -398,13 +461,10 @@ export default function App() {
                 </div>
 
                 <p className="export-note">
-                  <strong>Export Engine v5 (Zero-Readback 60.00 FPS CFR):</strong>{" "}
-                  merender 1080×1920 @ 60FPS tanpa bottleneck GPU readback ({" "}
-                  <span className="mono-inline">&lt;25ms/frame</span>) lalu menormalisasi kontainer{" "}
-                  <span className="mono-inline">WebM</span> &amp;{" "}
-                  <span className="mono-inline">MP4 H.264 High@L4.2</span> dengan{" "}
-                  <span className="mono-inline">FFmpeg (-vf fps=60 -r 60 -vsync cfr -b:v 8M)</span>{" "}
-                  agar hasil unduhan 100% mulus di semua pemutar video.
+                  <strong>Export Engine v6 (Deterministic Frame-by-Frame 60.00 FPS CFR):</strong>{" "}
+                  merender tepat 1.800 frame satu per satu dengan timestamp eksak (WebCodecs + mp4-muxer + webm-muxer)
+                  serta audio offline 48 kHz dan beat track terhitung deterministik. WebM (VP9/VP8) dan MP4 (H.264 High/AAC)
+                  dibuat bersamaan langsung dari frame yang sama tanpa frame drop.
                 </p>
               </div>
             </div>
@@ -413,3 +473,150 @@ export default function App() {
     </div>
   );
 }
+
+export default function App() {
+  const [activeVideo, setActiveVideo] = useState<
+    "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | "v8" | "v9" | "v10" | "v11"
+  >(() => {
+    if (typeof window !== "undefined") {
+      if (window.location.search.includes("video=11")) return "v11";
+      if (window.location.search.includes("video=10")) return "v10";
+      if (window.location.search.includes("video=1")) return "v1";
+      if (window.location.search.includes("video=2")) return "v2";
+      if (window.location.search.includes("video=3")) return "v3";
+      if (window.location.search.includes("video=4")) return "v4";
+      if (window.location.search.includes("video=5")) return "v5";
+      if (window.location.search.includes("video=6")) return "v6";
+      if (window.location.search.includes("video=7")) return "v7";
+      if (window.location.search.includes("video=8")) return "v8";
+      if (window.location.search.includes("video=9")) return "v9";
+    }
+    return "v11";
+  });
+
+  return (
+    <div>
+      <nav className="studio-video-switcher" aria-label="Production Studio Video Selector">
+        <div className="switcher-brand">
+          <span>AI STUDIO PRODUCTION SUITE</span>
+        </div>
+        <div className="switcher-tabs">
+          <button
+            type="button"
+            data-testid="switch-video-11"
+            className={`switcher-tab-btn ${activeVideo === "v11" ? "active-v1" : ""}`}
+            onClick={() => setActiveVideo("v11")}
+          >
+            <span>VIDEO 11 · CLAUDE BY ANTHROPIC (24.0S · 7 SCENES · 1920×1080 · 60FPS)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-10"
+            className={`switcher-tab-btn ${activeVideo === "v10" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v10")}
+          >
+            <span>VIDEO 10 · CHATGPT 4LING RUPIAH EXPLAINER · UPGRADED MOTION (19.5S · 9 SCENES · 1920×1080 · 60FPS)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-9"
+            className={`switcher-tab-btn ${activeVideo === "v9" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v9")}
+          >
+            <span>VIDEO 9 · GROK 4.7 DIRECTOR&apos;S CUT · FILE_SCAN.PY · SPACEX (30.0S · EN · MP4/WEBM/HTML)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-8"
+            className={`switcher-tab-btn ${activeVideo === "v8" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v8")}
+          >
+            <span>VIDEO 8 · GROK 4.7 ALEX HUTAJULU + BUILD BERKAS_SCAN.PY · SPACEX (24.0S · 1920×1080 · 60FPS)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-7"
+            className={`switcher-tab-btn ${activeVideo === "v7" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v7")}
+          >
+            <span>VIDEO 7 · CHATGPT 4LING RUPIAH EXPLAINER (19.5S · 1920×1080 · 60FPS)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-6"
+            className={`switcher-tab-btn ${activeVideo === "v6" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v6")}
+          >
+            <span>VIDEO 6 · MASTER FUSION: V4 + DOCK GEMINI + V3 + V5 (73.63S · 1920×1080)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-5"
+            className={`switcher-tab-btn ${activeVideo === "v5" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v5")}
+          >
+            <span>VIDEO 5 · GEMINI 22.33S RECREATION (16:9 · 1280×720)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-4"
+            className={`switcher-tab-btn ${activeVideo === "v4" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v4")}
+          >
+            <span>VIDEO 4 · CHATGPT 33.7S MOTION GRAPHICS (16:9 · 1920×1080)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-3"
+            className={`switcher-tab-btn ${activeVideo === "v3" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v3")}
+          >
+            <span>VIDEO 3 · GEMINI 4 ARGON 52.5S PROMO (16:9 · 60FPS · 13 Scenes)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-2"
+            className={`switcher-tab-btn ${activeVideo === "v2" ? "active-v2" : ""}`}
+            onClick={() => setActiveVideo("v2")}
+          >
+            <span>VIDEO 2 · GEMINI 4 ARGON 30S SHOWCASE (16:9 · 1920×1080)</span>
+          </button>
+          <button
+            type="button"
+            data-testid="switch-video-1"
+            className={`switcher-tab-btn ${activeVideo === "v1" ? "active-v1" : ""}`}
+            onClick={() => setActiveVideo("v1")}
+          >
+            <span>VIDEO 1 · CLAUDE OPUS 5.5 (9:16 · 1080×1920)</span>
+          </button>
+        </div>
+      </nav>
+
+      {activeVideo === "v11" ? (
+        <ClaudeVideo11View />
+      ) : activeVideo === "v10" ? (
+        <ChatGPTVideo10View />
+      ) : activeVideo === "v9" ? (
+        <GrokVideo9View />
+      ) : activeVideo === "v8" ? (
+        <GrokVideo8View />
+      ) : activeVideo === "v7" ? (
+        <ChatGPTVideo7View />
+      ) : activeVideo === "v6" ? (
+        <MasterVideo6View />
+      ) : activeVideo === "v5" ? (
+        <GeminiVideo5View />
+      ) : activeVideo === "v4" ? (
+        <ChatGPTVideo4View />
+      ) : activeVideo === "v3" ? (
+        <Gemini4ArgonVideo3View />
+      ) : activeVideo === "v2" ? (
+        <Gemini4ArgonView />
+      ) : (
+        <Video1ClaudeOpusStudio />
+      )}
+    </div>
+  );
+}
+
+

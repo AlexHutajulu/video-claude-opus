@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GEMINI — Video Recreation (HTML · 22.33s · 16:9)</title>
+<style>
+  :root {
+    --bg-void: #0b0b0d; --bg-panel: #141416; --bg-card: #1b1b1e; --border-subtle: #2b2b30;
+    --text-ivory: #f5f2eb; --text-cream: #e8e2d5; --text-muted: #9e9589;
+    --accent-blue: #4285f4; --accent-red: #ea4335; --accent-yellow: #fbbc04; --accent-green: #34a853;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Plus Jakarta Sans", Arial, sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; min-height: 100vh; background: var(--bg-void); color: var(--text-ivory); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  .shell { max-width: 1180px; margin: 0 auto; padding: 14px 18px 22px; display: flex; flex-direction: column; gap: 12px; }
+  .top-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 18px; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 12px; }
+  .brand-main { font-size: 14px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .brand-sub { font-size: 11px; color: var(--text-muted); letter-spacing: .04em; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 999px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-cream); }
+  .pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-blue); }
+  .stage { background: #0c0c0e; border: 1px solid var(--border-subtle); border-radius: 14px; padding: 16px; display: flex; justify-content: center; }
+  .canvas-frame { position: relative; width: 100%; max-width: 1024px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #fff; border: 1px solid rgba(255,255,255,.12); }
+  canvas { width: 100%; height: 100%; display: block; }
+  .transport { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 12px; }
+  .btn { padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-ivory); font-family: var(--font-sans); font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn.primary { background: linear-gradient(135deg, #4285f4, #9b72cb 55%, #d96570); border-color: rgba(255,255,255,.35); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.small { padding: 6px 11px; font-size: 12px; }
+  input[type="range"].scrub { flex: 1; min-width: 160px; accent-color: #4285f4; }
+  .time-label { font-family: var(--font-mono); font-size: 12px; color: var(--text-cream); }
+  .scene-row { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 12px; }
+  .scene-chip { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border-subtle); background: var(--bg-card); color: var(--text-cream); font-size: 12px; cursor: pointer; font-family: var(--font-sans); }
+  .scene-chip.active { border-color: rgba(66,133,244,.7); color: #fff; background: #1d2b45; }
+  .panel { padding: 14px 16px; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 12px; }
+  .panel h3 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+  .panel p { font-size: 13px; line-height: 1.65; color: var(--text-cream); }
+  .panel p + p { margin-top: 6px; }
+  .muted { color: var(--text-muted); }
+  .export-card { display: flex; flex-direction: column; gap: 10px; }
+  .export-btn { padding: 11px 16px; border-radius: 10px; border: 1px solid rgba(66,133,244,.6); background: linear-gradient(135deg, #1a73e8, #174ea6); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-sans); }
+  .export-btn.mp4 { background: linear-gradient(135deg, #2e7d5b, #1d5c40); border-color: rgba(169,240,201,.6); }
+  .export-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .download-btn { display: none; padding: 11px 16px; border-radius: 10px; background: #1e8e5a; color: #fff; text-decoration: none; font-size: 14px; font-weight: 700; text-align: center; }
+  .download-btn.ready { display: block; }
+  .progress-bg { height: 8px; background: #26262b; border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #4285f4, #9b72cb, #d96570); border-radius: 999px; transition: width .15s linear; }
+  .status { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); }
+  .vol-row { display: flex; align-items: center; gap: 8px; }
+  .vol-row input[type="range"] { width: 90px; accent-color: #4285f4; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top-header">
+    <div>
+      <div class="brand-main">Gemini — Video Recreation</div>
+      <div class="brand-sub">Dibuat ulang dengan HTML Canvas · 22.33 detik · 1280×720 · 30 FPS</div>
+    </div>
+    <div class="pill"><span class="dot"></span><span id="enginePill">CANVAS 16:9 · 30 FPS</span></div>
+  </div>
+
+  <div class="stage">
+    <div class="canvas-frame"><canvas id="stageCanvas" width="1280" height="720"></canvas></div>
+  </div>
+
+  <div class="transport">
+    <button type="button" class="btn primary" id="playBtn">▶ Play</button>
+    <button type="button" class="btn" id="replayBtn">↺ Replay</button>
+    <input type="range" class="scrub" id="scrubber" min="0" max="22.33" step="0.01" value="0" />
+    <span class="time-label" id="timeLabel">0.00s / 22.33s</span>
+    <div class="vol-row">
+      <button type="button" class="btn small" id="muteBtn">🔊 85%</button>
+    </div>
+  </div>
+
+  <div class="scene-row" id="sceneRow"></div>
+
+  <div class="panel">
+    <h3>Tentang video ini</h3>
+    <p>Rekreasi animasi video Gemini yang kamu kirim — urutan, teks, dan timing dibuat semirip mungkin dengan aslinya: intro "Gemini — Your personal assistant", kartu "Hi David", "Meet Gemini", integrasi Google Workspace, "Powerful video generation", "Gemini can listen", sampai penutup "Create · Write · Learn · With Gemini".</p>
+    <p class="muted">Foto-foto kecil (anjing, sapi, pegunungan, steak) dan musiknya diambil dari video asli yang kamu kirim, jadi tampilannya sama. Logo digambar ulang secara sederhana sebagai bentuk bintang gradasi — bukan aset logo resmi Google.</p>
+  </div>
+
+  <div class="panel">
+    <h3>Export Video</h3>
+    <div class="export-card">
+      <button type="button" class="export-btn" id="exportBtn">Export WebM Master (22.33s)</button>
+      <a id="downloadWebm" class="download-btn" href="#top" download="gemini_recreation.webm">Download WebM</a>
+      <button type="button" class="export-btn mp4" id="convertMp4Btn" disabled>Convert ke MP4 (H.264)</button>
+      <a id="downloadMp4" class="download-btn" href="#top" download="gemini_recreation.mp4">Download MP4</a>
+      <div class="progress-bg"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="status"><span id="statusMsg">Siap merekam 1280×720 30FPS + Audio</span> · <span id="pctMsg">0%</span></div>
+      <p class="muted" style="font-size:12px;line-height:1.6">Master direkam sebagai WebM (VP9, 12 Mbps, 670 frame tepat 22.33 detik). MP4 dibuat dengan transcode ffmpeg.wasm dari master yang sama, bukan direkam langsung — supaya durasi tidak jadi 3 detik seperti bug MP4 MediaRecorder. Convert MP4 butuh internet sekali untuk memuat mesin ffmpeg (~31 MB).</p>
+      <p class="muted" style="font-size:12px;line-height:1.6" id="mp4StatusMsg">Belum ada master WebM — export WebM dulu, lalu convert ke MP4 di sini.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================= CONSTANTS ================= */
+  const WIDTH = 1280, HEIGHT = 720, CX = 640, CY = 360;
+  const DURATION = 22.33, EXPORT_FPS = 30, TOTAL_FRAMES = 670;
+  const SAFE_X = 64, SAFE_W = WIDTH - SAFE_X * 2;
+
+  // Aset dari video asli: 4 foto tile + musik (base64, disuntik saat build)
+  const TILE_DOG_SRC = "__TILE_DOG__";
+  const TILE_COW_SRC = "__TILE_COW__";
+  const TILE_MOUNTAINS_SRC = "__TILE_MOUNTAINS__";
+  const TILE_STEAK_SRC = "__TILE_STEAK__";
+  const SOUNDTRACK_SRC = "__SOUNDTRACK__";
+  const SOUNDTRACK_DURATION = 22.33;
+
+  const SCENES = [
+    { id: 1, name: "01 · Intro + Hi David", start: 0.0, end: 2.0 },
+    { id: 2, name: "02 · Ask Gemini", start: 2.0, end: 3.2 },
+    { id: 3, name: "03 · Meet Gemini", start: 3.2, end: 5.8 },
+    { id: 4, name: "04 · App Icon", start: 5.8, end: 7.2 },
+    { id: 5, name: "05 · Workspace", start: 7.2, end: 9.0 },
+    { id: 6, name: "06 · Video Generation", start: 9.0, end: 12.6 },
+    { id: 7, name: "07 · Gemini Can Listen", start: 12.6, end: 15.2 },
+    { id: 8, name: "08 · Create · Write · Learn", start: 15.2, end: 22.33 }
+  ];
+
+  /* ================= HELPERS ================= */
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function smoothstep(a, b, x) { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
+  function easeOutCubic(t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); }
+  function easeOutQuint(t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 5); }
+  function easeOutBack(t) { t = clamp(t, 0, 1); const c = 1.70158; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); }
+
+  function roundRectPath(ctx, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // Teks dengan letter-spacing (canvas tidak punya tracking bawaan)
+  function drawTrackedText(ctx, text, cx, y, tracking, fillStyle, font, align) {
+    ctx.save();
+    ctx.font = font;
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = fillStyle;
+    const widths = [];
+    let total = 0;
+    for (let i = 0; i < text.length; i++) {
+      const w = ctx.measureText(text[i]).width;
+      widths.push(w); total += w;
+    }
+    total += tracking * Math.max(0, text.length - 1);
+    let x = align === "left" ? cx : align === "right" ? cx - total : cx - total / 2;
+    ctx.textAlign = "left";
+    for (let i = 0; i < text.length; i++) {
+      ctx.fillText(text[i], x, y);
+      x += widths[i] + tracking;
+    }
+    ctx.restore();
+  }
+
+  function rainbowGradient(ctx, x0, y0, x1, y1) {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0.0, "#4285f4"); g.addColorStop(0.22, "#9b72cb");
+    g.addColorStop(0.42, "#d96570"); g.addColorStop(0.62, "#fbbc04");
+    g.addColorStop(0.82, "#34a853"); g.addColorStop(1.0, "#4285f4");
+    return g;
+  }
+
+  // Bintang 4-sisi (sparkle) dengan gradasi pelangi
+  function drawSparkle(ctx, x, y, r, alpha, rot) {
+    if (alpha <= 0.01) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot || 0);
+    ctx.globalAlpha = alpha;
+    const g = ctx.createLinearGradient(-r, -r, r, r);
+    g.addColorStop(0, "#4285f4"); g.addColorStop(0.3, "#a142f5");
+    g.addColorStop(0.55, "#ea4335"); g.addColorStop(0.8, "#fbbc04"); g.addColorStop(1, "#34a853");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.quadraticCurveTo(r * 0.16, -r * 0.16, r, 0);
+    ctx.quadraticCurveTo(r * 0.16, r * 0.16, 0, r);
+    ctx.quadraticCurveTo(-r * 0.16, r * 0.16, -r, 0);
+    ctx.quadraticCurveTo(-r * 0.16, -r * 0.16, 0, -r);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function softBlob(ctx, x, y, r, color, alpha) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, color);
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function shadowCard(ctx, x, y, w, h, r, fill, alpha) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = "rgba(60,64,67,0.28)";
+    ctx.shadowBlur = 28; ctx.shadowOffsetY = 10;
+    roundRectPath(ctx, x, y, w, h, r);
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPhotoTile(ctx, img, x, y, w, h, r, alpha) {
+    if (!img || !img.complete || !img.naturalWidth || alpha <= 0.01) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = "rgba(60,64,67,0.25)";
+    ctx.shadowBlur = 18; ctx.shadowOffsetY = 6;
+    roundRectPath(ctx, x, y, w, h, r);
+    ctx.fillStyle = "#e8eaed"; ctx.fill();
+    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.clip();
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const s = Math.max(w / iw, h / ih);
+    const dw = iw * s, dh = ih * s;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    ctx.restore();
+  }
+
+  /* ================= ASSETS ================= */
+  const tileDog = new Image(), tileCow = new Image(), tileMountains = new Image(), tileSteak = new Image();
+  tileDog.src = TILE_DOG_SRC; tileCow.src = TILE_COW_SRC;
+  tileMountains.src = TILE_MOUNTAINS_SRC; tileSteak.src = TILE_STEAK_SRC;
+
+  /* ================= AUDIO (musik asli dari video) ================= */
+  const AudioEngine = {
+    ctx: null, masterGain: null, monitorGain: null, compressor: null,
+    soundtrackEl: null, soundtrackGain: null, soundtrackReady: false,
+    isInitialized: false, isMuted: false, userVolume: 0.85,
+    init: function () {
+      if (this.isInitialized) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.compressor = this.ctx.createDynamicsCompressor();
+      this.compressor.threshold.setValueAtTime(-14, this.ctx.currentTime);
+      this.compressor.ratio.setValueAtTime(4, this.ctx.currentTime);
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(0.9, this.ctx.currentTime);
+      this.monitorGain = this.ctx.createGain();
+      this.monitorGain.gain.setValueAtTime(this.userVolume, this.ctx.currentTime);
+      this.compressor.connect(this.masterGain);
+      this.masterGain.connect(this.monitorGain);
+      this.monitorGain.connect(this.ctx.destination);
+      const dest = this.ctx.createMediaStreamDestination();
+      this.masterGain.connect(dest);
+      this.exportDest = dest;
+      // Soundtrack
+      const el = document.createElement("audio");
+      el.preload = "auto"; el.src = SOUNDTRACK_SRC; el.loop = false;
+      this.soundtrackEl = el;
+      try {
+        const src = this.ctx.createMediaElementSource(el);
+        this.soundtrackGain = this.ctx.createGain();
+        this.soundtrackGain.gain.setValueAtTime(0.9, this.ctx.currentTime);
+        src.connect(this.soundtrackGain);
+        this.soundtrackGain.connect(this.compressor);
+      } catch (_) { this.soundtrackEl = null; }
+      el.addEventListener("canplaythrough", () => { this.soundtrackReady = true; }, { once: true });
+      this.isInitialized = true;
+    },
+    ensure: async function () {
+      this.init();
+      if (!this.soundtrackEl) return false;
+      if (this.ctx && this.ctx.state === "suspended") { try { await this.ctx.resume(); } catch (_) {} }
+      if (this.soundtrackReady || this.soundtrackEl.readyState >= 3) return true;
+      try {
+        await Promise.race([
+          new Promise((res) => this.soundtrackEl.addEventListener("canplaythrough", res, { once: true })),
+          new Promise((res) => setTimeout(res, 4000))
+        ]);
+      } catch (_) {}
+      return this.soundtrackReady || this.soundtrackEl.readyState >= 3;
+    },
+    play: function (t) {
+      if (!this.soundtrackEl) return;
+      try {
+        this.soundtrackEl.currentTime = clamp(t || 0, 0, SOUNDTRACK_DURATION - 0.1);
+        const pr = this.soundtrackEl.play();
+        if (pr && pr.catch) pr.catch(() => {});
+      } catch (_) {}
+    },
+    pause: function () { if (this.soundtrackEl) { try { this.soundtrackEl.pause(); } catch (_) {} } },
+    seek: function (t) {
+      if (!this.soundtrackEl) return;
+      try { this.soundtrackEl.currentTime = clamp(t || 0, 0, SOUNDTRACK_DURATION - 0.1); } catch (_) {}
+    },
+    setVolume: function (v) {
+      this.userVolume = clamp(v, 0, 1);
+      if (this.monitorGain && this.ctx) {
+        this.monitorGain.gain.setTargetAtTime(this.isMuted ? 0 : this.userVolume, this.ctx.currentTime, 0.03);
+      }
+    },
+    toggleMute: function () {
+      this.isMuted = !this.isMuted;
+      if (this.monitorGain && this.ctx) {
+        this.monitorGain.gain.setTargetAtTime(this.isMuted ? 0 : this.userVolume, this.ctx.currentTime, 0.03);
+      }
+      return this.isMuted;
+    }
+  };
+
+  /* ================= SCENES ================= */
+  const DARK = "#202124", GRAY = "#5f6368", LIGHT = "#9aa0a6";
+
+  function sceneAlpha(t, start, end, fadeIn, fadeOut) {
+    return smoothstep(start, start + fadeIn, t) * (1 - smoothstep(end - fadeOut, end, t));
+  }
+
+  // ---- SCENE 1: Intro + kartu Hi David (0.0–2.0) ----
+  function drawScene1(ctx, t) {
+    const a = sceneAlpha(t, 0, 2.0, 0.3, 0.35);
+    if (a <= 0.005) return;
+    const rise = (1 - easeOutQuint(clamp(t / 0.7, 0, 1))) * 26;
+
+    // Judul Gemini + sparkle
+    const titleA = easeOutCubic(clamp(t / 0.55, 0, 1)) * a;
+    ctx.save();
+    ctx.globalAlpha = titleA;
+    drawTrackedText(ctx, "Gemini", CX - 40, 138 + rise, 1, DARK, "700 92px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif");
+    ctx.restore();
+    drawSparkle(ctx, 872, 128 + rise, 30, titleA, t * 0.4);
+    ctx.save();
+    ctx.globalAlpha = easeOutCubic(clamp((t - 0.25) / 0.5, 0, 1)) * a;
+    drawTrackedText(ctx, "Your personal assistant", CX, 212 + rise, 0.5, GRAY, "400 42px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif");
+    ctx.restore();
+
+    // Kartu naik dari bawah, pinggir pelangi
+    const cardProg = easeOutQuint(clamp((t - 0.45) / 0.7, 0, 1));
+    const cardA = cardProg * a;
+    if (cardA > 0.01) {
+      const cw = 1000, ch = 330, cx0 = CX - cw / 2;
+      const cy0 = 300 + (1 - cardProg) * 90;
+      ctx.save();
+      ctx.globalAlpha = cardA;
+      // pinggir pelangi (stroke gradasi + blur tipis)
+      ctx.shadowColor = "rgba(66,133,244,0.35)";
+      ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
+      roundRectPath(ctx, cx0, cy0, cw, ch, 40);
+      ctx.strokeStyle = rainbowGradient(ctx, cx0, cy0, cx0 + cw, cy0 + ch);
+      ctx.lineWidth = 7; ctx.stroke();
+      ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      roundRectPath(ctx, cx0, cy0, cw, ch, 40);
+      ctx.fillStyle = "#ffffff"; ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalAlpha = cardA;
+      drawSparkle(ctx, cx0 + 78, cy0 + 62, 17, 1, 0);
+      drawTrackedText(ctx, "Hi David", cx0 + 108, cy0 + 62, 0, DARK, "500 34px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif", "left");
+      drawTrackedText(ctx, "Where should we start?", cx0 + 78, cy0 + 122, 0, DARK, "700 46px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif", "left");
+      // Pill input
+      const px = cx0 + 48, py = cy0 + 168, pw = cw - 96, ph = 96;
+      roundRectPath(ctx, px, py, pw, ph, 48);
+      ctx.fillStyle = "#f8f9fa"; ctx.fill();
+      ctx.strokeStyle = "rgba(60,64,67,0.12)"; ctx.lineWidth = 1.5; ctx.stroke();
+      drawTrackedText(ctx, "Ask Gemini", px + 36, py + ph / 2 - 14, 0, "#80868b", "400 34px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif", "left");
+      // baris bawah pill
+      ctx.font = "500 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = "#80868b"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText("✕", px + 36, py + ph - 22);
+      ctx.fillText("Tools", px + 78, py + ph - 22);
+      ctx.textAlign = "right";
+      ctx.fillText("Fast  ⌄", px + pw - 90, py + ph - 22);
+      ctx.restore();
+    }
+  }
+
+  // ---- SCENE 2: Ask Gemini + kartu Overview / Deep dive (2.0–3.2) ----
+  function drawScene2(ctx, t) {
+    const a = sceneAlpha(t, 2.0, 3.2, 0.25, 0.3);
+    if (a <= 0.005) return;
+    const lt = t - 2.0;
+
+    // Pill "Ask Gemini"
+    const pillProg = easeOutQuint(clamp(lt / 0.4, 0, 1));
+    ctx.save();
+    ctx.globalAlpha = pillProg * a;
+    const pw = 300, ph = 76, px = CX - pw / 2, py = 96 + (1 - pillProg) * 30;
+    shadowCard(ctx, px, py, pw, ph, 38, "#ffffff", 1);
+    ctx.strokeStyle = "rgba(60,64,67,0.10)"; ctx.lineWidth = 1.5;
+    roundRectPath(ctx, px, py, pw, ph, 38); ctx.stroke();
+    drawTrackedText(ctx, "Ask Gemini", CX - 12, py + ph / 2, 0, GRAY, "400 34px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif");
+    ctx.restore();
+
+    // Kartu Overview
+    const oProg = easeOutQuint(clamp((lt - 0.25) / 0.45, 0, 1));
+    if (oProg > 0.01) {
+      const cw = 720, ch = 118, cx0 = CX - cw / 2, cy0 = 216 + (1 - oProg) * 26;
+      ctx.save(); ctx.globalAlpha = oProg * a;
+      shadowCard(ctx, cx0, cy0, cw, ch, 22, "#ffffff", 1);
+      drawSparkle(ctx, cx0 + 46, cy0 + 34, 13, 1, 0);
+      drawTrackedText(ctx, "Overview", cx0 + 72, cy0 + 34, 0, DARK, "700 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif", "left");
+      ctx.font = "400 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = GRAY; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText("The Grand Canyon is a massive canyon.", cx0 + 36, cy0 + 78);
+      ctx.restore();
+    }
+    // Kartu Deep dive
+    const dProg = easeOutQuint(clamp((lt - 0.55) / 0.45, 0, 1));
+    if (dProg > 0.01) {
+      const cw = 720, ch = 118, cx0 = CX - cw / 2, cy0 = 366 + (1 - dProg) * 26;
+      ctx.save(); ctx.globalAlpha = dProg * a;
+      shadowCard(ctx, cx0, cy0, cw, ch, 22, "#ffffff", 1);
+      ctx.font = "700 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = "#4285f4"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText("🔍", cx0 + 36, cy0 + 34);
+      drawTrackedText(ctx, "Deep dive", cx0 + 78, cy0 + 34, 0, DARK, "700 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif", "left");
+      ctx.font = "400 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = GRAY;
+      ctx.fillText("The canyon spans 277 miles.", cx0 + 36, cy0 + 78);
+      ctx.restore();
+    }
+  }
+
+  // ---- SCENE 3: Meet Gemini / Gemini can do it all (3.2–5.8) ----
+  function drawScene3(ctx, t) {
+    const a = sceneAlpha(t, 3.2, 5.8, 0.3, 0.35);
+    if (a <= 0.005) return;
+    const lt = t - 3.2;
+
+    // Orb cahaya biru di tengah
+    const orbA = smoothstep(0, 0.5, lt) * a;
+    softBlob(ctx, CX, 330, 150, "rgba(66,133,244,0.55)", orbA * 0.8);
+    softBlob(ctx, CX, 330, 80, "rgba(155,114,203,0.5)", orbA * 0.7);
+    drawSparkle(ctx, CX, 330, 34 + Math.sin(t * 3) * 4, orbA, t * 0.5);
+
+    // "Meet Gemini" — Meet dari kiri, Gemini dari kanan
+    const meetProg = easeOutQuint(clamp((lt - 0.15) / 0.6, 0, 1));
+    const meetA = meetProg * a * (1 - smoothstep(1.15, 1.55, lt));
+    if (meetA > 0.01) {
+      ctx.save(); ctx.globalAlpha = meetA;
+      const slide = (1 - meetProg) * 90;
+      ctx.font = "500 62px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = DARK; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      ctx.fillText("Meet", CX - 52 - slide, 330);
+      ctx.textAlign = "left";
+      ctx.fillText("Gemini", CX + 52 + slide, 330);
+      ctx.restore();
+    }
+    // "Gemini can do it all."
+    const allProg = easeOutQuint(clamp((lt - 1.45) / 0.55, 0, 1));
+    const allA = allProg * a;
+    if (allA > 0.01) {
+      ctx.save(); ctx.globalAlpha = allA;
+      const y = 330 + (1 - allProg) * 18;
+      ctx.font = "500 56px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.textBaseline = "middle";
+      const full = "Gemini can do it all.";
+      const wGem = ctx.measureText("Gemini ").width;
+      const wAll = ctx.measureText(full).width;
+      ctx.textAlign = "left";
+      ctx.fillStyle = DARK;
+      ctx.fillText("Gemini", CX - wAll / 2, y);
+      ctx.fillStyle = GRAY;
+      ctx.fillText("can do it all.", CX - wAll / 2 + wGem, y);
+      drawSparkle(ctx, CX - wAll / 2 - 42, y, 20, 1, 0);
+      ctx.restore();
+    }
+  }
+
+  // ---- SCENE 4: Ikon aplikasi (5.8–7.2) ----
+  function drawScene4(ctx, t) {
+    const a = sceneAlpha(t, 5.8, 7.2, 0.25, 0.3);
+    if (a <= 0.005) return;
+    const lt = t - 5.8;
+    const prog = easeOutBack(clamp(lt / 0.55, 0, 1));
+    const s = 300 * prog, x0 = CX - s / 2, y0 = CY - s / 2 - 10;
+
+    ctx.save(); ctx.globalAlpha = a;
+    // kotak putih + pinggir pelangi tipis
+    ctx.shadowColor = "rgba(60,64,67,0.25)"; ctx.shadowBlur = 30; ctx.shadowOffsetY = 12;
+    roundRectPath(ctx, x0, y0, s, s, 56 * prog);
+    ctx.fillStyle = "#ffffff"; ctx.fill();
+    ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    ctx.strokeStyle = rainbowGradient(ctx, x0, y0, x0 + s, y0 + s);
+    ctx.lineWidth = 5; ctx.stroke();
+
+    // Huruf G gradasi di tengah
+    const gGrad = ctx.createLinearGradient(x0 + 70, y0 + 60, x0 + s - 70, y0 + s - 60);
+    gGrad.addColorStop(0, "#4285f4"); gGrad.addColorStop(0.35, "#ea4335");
+    gGrad.addColorStop(0.65, "#fbbc04"); gGrad.addColorStop(1, "#34a853");
+    ctx.font = "700 " + Math.round(150 * prog) + "px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+    ctx.fillStyle = gGrad; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("G", CX, CY - 4);
+    ctx.restore();
+
+    // 4 ikon Workspace di sudut (muncul berurutan)
+    const icons = [
+      { x: x0 - 26, y: y0 - 26, bg: "#ffffff", glyph: "M", color: "#ea4335", delay: 0.15 },
+      { x: x0 + s - 38, y: y0 - 26, bg: "#ffffff", glyph: "▲", color: "#34a853", delay: 0.28 },
+      { x: x0 - 26, y: y0 + s - 38, bg: "#ffffff", glyph: "▶", color: "#00897b", delay: 0.41 },
+      { x: x0 + s - 38, y: y0 + s - 38, bg: "#ffffff", glyph: "≡", color: "#4285f4", delay: 0.54 }
+    ];
+    icons.forEach((ic) => {
+      const p = easeOutBack(clamp((lt - ic.delay) / 0.35, 0, 1));
+      if (p <= 0.01) return;
+      ctx.save(); ctx.globalAlpha = p * a;
+      ctx.shadowColor = "rgba(60,64,67,0.25)"; ctx.shadowBlur = 12; ctx.shadowOffsetY = 4;
+      roundRectPath(ctx, ic.x, ic.y, 64, 64, 16);
+      ctx.fillStyle = ic.bg; ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.font = "700 30px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = ic.color; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(ic.glyph, ic.x + 32, ic.y + 34);
+      ctx.restore();
+    });
+  }
+
+  // ---- SCENE 5: Google Workspace + integration (7.2–9.0) ----
+  function drawScene5(ctx, t) {
+    const a = sceneAlpha(t, 7.2, 9.0, 0.25, 0.3);
+    if (a <= 0.005) return;
+    const lt = t - 7.2;
+
+    // "G Workspace"
+    const wsA = (1 - smoothstep(0.75, 1.15, lt)) * a;
+    if (wsA > 0.01) {
+      const p = easeOutQuint(clamp(lt / 0.5, 0, 1));
+      ctx.save(); ctx.globalAlpha = wsA * p;
+      const gGrad = ctx.createLinearGradient(400, 0, 470, 0);
+      gGrad.addColorStop(0, "#4285f4"); gGrad.addColorStop(0.35, "#ea4335");
+      gGrad.addColorStop(0.65, "#fbbc04"); gGrad.addColorStop(1, "#34a853");
+      ctx.font = "700 64px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.textBaseline = "middle";
+      const wG = ctx.measureText("G ").width;
+      const wAll = ctx.measureText("G Workspace").width;
+      ctx.textAlign = "left";
+      ctx.fillStyle = gGrad;
+      ctx.fillText("G", CX - wAll / 2, 330);
+      ctx.fillStyle = DARK;
+      ctx.fillText("Workspace", CX - wAll / 2 + wG, 330);
+      ctx.restore();
+    }
+    // "integration" + kotak seleksi garis putus-putus
+    const intProg = easeOutQuint(clamp((lt - 0.85) / 0.5, 0, 1));
+    const intA = intProg * a;
+    if (intA > 0.01) {
+      ctx.save(); ctx.globalAlpha = intA;
+      drawSparkle(ctx, CX - 235, 330, 22, 1, t * 0.3);
+      ctx.font = "500 58px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.textBaseline = "middle";
+      const w = ctx.measureText("integration").width;
+      const bx = CX - w / 2 - 26, by = 330 - 48, bw = w + 52, bh = 96;
+      ctx.setLineDash([10, 8]);
+      ctx.lineDashOffset = -t * 30;
+      roundRectPath(ctx, bx, by, bw, bh, 16);
+      ctx.strokeStyle = "rgba(66,133,244,0.9)"; ctx.lineWidth = 3; ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = GRAY; ctx.textAlign = "center";
+      ctx.fillText("integration", CX, 330);
+      ctx.restore();
+    }
+  }
+
+  // ---- SCENE 6: Powerful video generation + foto (9.0–12.6) ----
+  function drawScene6(ctx, t) {
+    const a = sceneAlpha(t, 9.0, 12.6, 0.3, 0.35);
+    if (a <= 0.005) return;
+    const lt = t - 9.0;
+
+    // Teks utama
+    const textA = (1 - smoothstep(2.6, 3.1, lt)) * a;
+    if (textA > 0.01) {
+      const p = easeOutQuint(clamp(lt / 0.5, 0, 1));
+      ctx.save(); ctx.globalAlpha = textA * p;
+      ctx.font = "500 52px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.textBaseline = "middle";
+      const full = "Powerful video generation";
+      const wP = ctx.measureText("Powerful video ").width;
+      const wAll = ctx.measureText(full).width;
+      ctx.textAlign = "left";
+      ctx.shadowColor = "rgba(66,133,244,0.45)"; ctx.shadowBlur = 18;
+      ctx.fillStyle = DARK;
+      ctx.fillText("Powerful video", CX - wAll / 2, 350);
+      ctx.fillStyle = "#7fb3f7";
+      ctx.fillText("generation", CX - wAll / 2 + wP, 350);
+      ctx.restore();
+    }
+    // "in the palm of your hand."
+    const palmProg = easeOutQuint(clamp((lt - 2.9) / 0.5, 0, 1));
+    const palmA = palmProg * a;
+    if (palmA > 0.01) {
+      ctx.save(); ctx.globalAlpha = palmA;
+      drawTrackedText(ctx, "in the palm of your hand.", CX, 350, 0, DARK, "500 48px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif");
+      ctx.restore();
+    }
+
+    // 4 foto terbang masuk dari tepi (hilang saat teks palm muncul)
+    const tileA = (1 - smoothstep(2.55, 3.0, lt)) * a;
+    if (tileA > 0.01) {
+      const tiles = [
+        { img: tileDog, x: 18, y: 12, w: 300, h: 228, fx: -360, fy: -40, d: 0.15 },
+        { img: tileCow, x: 902, y: 8, w: 360, h: 160, fx: 380, fy: -40, d: 0.30 },
+        { img: tileMountains, x: 1002, y: 196, w: 278, h: 392, fx: 320, fy: 60, d: 0.45 },
+        { img: tileSteak, x: 30, y: 480, w: 330, h: 228, fx: -360, fy: 60, d: 0.60 }
+      ];
+      tiles.forEach((tl) => {
+        const p = easeOutQuint(clamp((lt - tl.d) / 0.6, 0, 1));
+        if (p <= 0.01) return;
+        const x = tl.x + (1 - p) * tl.fx;
+        const y = tl.y + (1 - p) * tl.fy;
+        drawPhotoTile(ctx, tl.img, x, y, tl.w, tl.h, 24, p * tileA);
+      });
+    }
+  }
+
+  // ---- SCENE 7: Gemini can listen + ponsel (12.6–15.2) ----
+  function drawScene7(ctx, t) {
+    const a = sceneAlpha(t, 12.6, 15.2, 0.3, 0.35);
+    if (a <= 0.005) return;
+    const lt = t - 12.6;
+
+    // Judul
+    const titleProg = easeOutQuint(clamp(lt / 0.5, 0, 1));
+    ctx.save(); ctx.globalAlpha = titleProg * a;
+    ctx.font = "500 56px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+    ctx.textBaseline = "middle";
+    const full = "Gemini can listen.";
+    const wG = ctx.measureText("Gemini ").width;
+    const wAll = ctx.measureText(full).width;
+    ctx.textAlign = "left";
+    const grad = ctx.createLinearGradient(CX - wAll / 2, 0, CX - wAll / 2 + wG, 0);
+    grad.addColorStop(0, "#9b72cb"); grad.addColorStop(1, "#4285f4");
+    ctx.fillStyle = grad;
+    ctx.fillText("Gemini", CX - wAll / 2, 108);
+    ctx.fillStyle = DARK;
+    ctx.fillText("can listen.", CX - wAll / 2 + wG, 108);
+    ctx.restore();
+
+    // Ponsel
+    const phoneProg = easeOutQuint(clamp((lt - 0.25) / 0.6, 0, 1));
+    if (phoneProg > 0.01) {
+      const pw = 300, ph = 430, px = CX - pw / 2, py = 168 + (1 - phoneProg) * 60;
+      ctx.save(); ctx.globalAlpha = phoneProg * a;
+      ctx.shadowColor = "rgba(60,64,67,0.30)"; ctx.shadowBlur = 26; ctx.shadowOffsetY = 10;
+      roundRectPath(ctx, px, py, pw, ph, 36);
+      ctx.fillStyle = "#ffffff"; ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      roundRectPath(ctx, px, py, pw, ph, 36);
+      ctx.strokeStyle = rainbowGradient(ctx, px, py, px + pw, py + ph);
+      ctx.lineWidth = 4; ctx.stroke();
+      // avatar + bubble nama
+      ctx.beginPath(); ctx.arc(px + 62, py + 62, 22, 0, Math.PI * 2);
+      ctx.fillStyle = "#fbbc04"; ctx.fill();
+      ctx.font = "700 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = "#202124"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("D", px + 62, py + 63);
+      roundRectPath(ctx, px + 94, py + 44, 92, 36, 18);
+      ctx.fillStyle = "#e8f0fe"; ctx.fill();
+      ctx.font = "500 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = "#1a73e8";
+      ctx.fillText("dede.zs", px + 140, py + 63);
+      // Listening
+      ctx.font = "600 38px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = "#1a73e8";
+      ctx.fillText("Listening", CX, py + 150);
+      // Waveform
+      for (let i = 0; i < 9; i++) {
+        const bh = 14 + Math.abs(Math.sin(t * 5 + i * 0.9)) * 34;
+        const bx = CX - 88 + i * 22;
+        roundRectPath(ctx, bx, py + 210 - bh / 2, 10, bh, 5);
+        ctx.fillStyle = i % 3 === 0 ? "#4285f4" : "#9b72cb";
+        ctx.fill();
+      }
+      // busur pelangi
+      ctx.beginPath();
+      ctx.arc(CX, py + 330, 92, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.strokeStyle = rainbowGradient(ctx, px + 40, py + 300, px + pw - 40, py + 300);
+      ctx.lineWidth = 5; ctx.stroke();
+      ctx.restore();
+    }
+
+    // Huruf-huruf melayang di sekitar ponsel
+    const letters = [
+      { ch: "g", x: 300, y: 300, d: 0.5 }, { ch: "n", x: 330, y: 470, d: 0.65 },
+      { ch: "i", x: 950, y: 290, d: 0.55 }, { ch: "m", x: 930, y: 470, d: 0.7 },
+      { ch: "e", x: 1010, y: 380, d: 0.8 }
+    ];
+    letters.forEach((L, i) => {
+      const p = easeOutQuint(clamp((lt - L.d) / 0.4, 0, 1));
+      if (p <= 0.01) return;
+      const ly = L.y + Math.sin(t * 2 + i * 1.3) * 10;
+      ctx.save(); ctx.globalAlpha = p * a;
+      ctx.shadowColor = "rgba(60,64,67,0.2)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+      roundRectPath(ctx, L.x - 22, ly - 22, 44, 44, 12);
+      ctx.fillStyle = "#ffffff"; ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+      ctx.font = "600 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.fillStyle = GRAY; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(L.ch, L.x, ly + 1);
+      ctx.restore();
+    });
+    drawSparkle(ctx, 880, 240, 16, a * smoothstep(0.6, 1.0, lt), t * 0.4);
+    drawSparkle(ctx, 400, 560, 14, a * smoothstep(0.8, 1.2, lt), -t * 0.3);
+  }
+
+  // ---- SCENE 8: Create / Write / Learn / With Gemini (15.2–22.33) ----
+  function drawScene8(ctx, t) {
+    if (t < 15.2) return;
+    const lt = t - 15.2;
+    const words = [
+      { text: "Create", start: 0.0, end: 1.5 },
+      { text: "Write", start: 1.5, end: 3.0 },
+      { text: "Learn", start: 3.0, end: 4.5 },
+      { text: "With Gemini", start: 4.5, end: 6.6 }
+    ];
+    words.forEach((w) => {
+      const local = lt - w.start;
+      if (local < 0 || local > (w.end - w.start) + 0.4) return;
+      const fadeIn = smoothstep(0, 0.35, local);
+      const fadeOut = 1 - smoothstep((w.end - w.start) - 0.45, (w.end - w.start) + 0.1, local);
+      const a = fadeIn * fadeOut;
+      if (a <= 0.01) return;
+      const scale = 0.92 + 0.08 * easeOutQuint(clamp(local / 0.5, 0, 1));
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.translate(CX, CY);
+      ctx.scale(scale, scale);
+      ctx.font = "500 88px -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      if (w.text === "With Gemini") {
+        const wW = ctx.measureText("With ").width;
+        const wAll = ctx.measureText(w.text).width;
+        ctx.textAlign = "left";
+        ctx.fillStyle = GRAY;
+        ctx.fillText("With", -wAll / 2, 0);
+        ctx.fillStyle = DARK;
+        ctx.fillText("Gemini", -wAll / 2 + wW, 0);
+        drawSparkle(ctx, -wAll / 2 - 52, 0, 22, 1, 0);
+      } else {
+        ctx.fillStyle = DARK;
+        ctx.fillText(w.text, 0, 0);
+      }
+      ctx.restore();
+    });
+    // Fade ke putih di akhir
+    const endFade = smoothstep(6.6, 7.13, lt);
+    if (endFade > 0.01) {
+      ctx.save(); ctx.globalAlpha = endFade;
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      ctx.restore();
+    }
+  }
+
+  /* ================= MASTER RENDER ================= */
+  const canvas = document.getElementById("stageCanvas");
+  const ctx = canvas.getContext("2d");
+
+  function renderFrame(t) {
+    // Latar putih + blob pelangi lembut
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    softBlob(ctx, 180 + Math.sin(t * 0.12) * 30, 620, 340, "rgba(52,168,83,0.20)", 1);
+    softBlob(ctx, 1120 + Math.cos(t * 0.10) * 30, 90, 320, "rgba(66,133,244,0.16)", 1);
+    softBlob(ctx, 640, 700, 420, "rgba(155,114,203,0.14)", 1);
+    softBlob(ctx, 150, 120, 260, "rgba(251,188,4,0.10)", 1);
+
+    drawScene1(ctx, t);
+    drawScene2(ctx, t);
+    drawScene3(ctx, t);
+    drawScene4(ctx, t);
+    drawScene5(ctx, t);
+    drawScene6(ctx, t);
+    drawScene7(ctx, t);
+    drawScene8(ctx, t);
+  }
+
+  /* ================= PLAYER ================= */
+  const playBtn = document.getElementById("playBtn");
+  const replayBtn = document.getElementById("replayBtn");
+  const scrubber = document.getElementById("scrubber");
+  const timeLabel = document.getElementById("timeLabel");
+  const muteBtn = document.getElementById("muteBtn");
+  const sceneRow = document.getElementById("sceneRow");
+
+  let currentTime = 0.0, isPlaying = false, isExporting = false;
+  let rafId = null, lastPerf = 0;
+  let exportFrameIndex = 0, exportChunkCount = 0;
+  let currentBlobUrl = null, masterWebmBlob = null, masterMp4BlobUrl = null;
+  let isConvertingMp4 = false, ffmpegInstance = null, ffmpegLoaded = false;
+  let activeMediaRecorder = null, activeVideoTrack = null;
+
+  SCENES.forEach((s) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "scene-chip"; b.textContent = s.name;
+    b.addEventListener("click", () => { seekTo(s.start + 0.01); });
+    sceneRow.appendChild(b);
+  });
+  const sceneChips = Array.from(sceneRow.querySelectorAll(".scene-chip"));
+
+  function updateUI() {
+    scrubber.value = String(currentTime);
+    timeLabel.textContent = currentTime.toFixed(2) + "s / " + DURATION.toFixed(2) + "s";
+    playBtn.textContent = isPlaying ? "⏸ Pause" : "▶ Play";
+    const idx = SCENES.findIndex((s) => currentTime >= s.start && currentTime < s.end);
+    sceneChips.forEach((c, i) => c.classList.toggle("active", i === idx));
+  }
+
+  function tick(now) {
+    if (!isPlaying) return;
+    const dt = Math.min((now - lastPerf) / 1000, 0.1);
+    lastPerf = now;
+    currentTime += dt;
+    if (currentTime >= DURATION) {
+      currentTime = DURATION;
+      renderFrame(currentTime);
+      updateUI();
+      pausePlayback(true);
+      return;
+    }
+    renderFrame(currentTime);
+    updateUI();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  async function startPlayback() {
+    await AudioEngine.ensure();
+    if (currentTime >= DURATION - 0.01) currentTime = 0;
+    AudioEngine.play(currentTime);
+    isPlaying = true;
+    lastPerf = performance.now();
+    updateUI();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function pausePlayback(ended) {
+    isPlaying = false;
+    AudioEngine.pause();
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
+    if (!ended) updateUI();
+  }
+
+  function seekTo(t) {
+    currentTime = clamp(t, 0, DURATION);
+    AudioEngine.seek(currentTime);
+    if (!isPlaying) { renderFrame(currentTime); updateUI(); }
+  }
+
+  playBtn.addEventListener("click", () => { if (isPlaying) pausePlayback(false); else startPlayback(); });
+  replayBtn.addEventListener("click", () => { pausePlayback(false); seekTo(0); startPlayback(); });
+  scrubber.addEventListener("input", (e) => { pausePlayback(false); seekTo(parseFloat(e.target.value)); });
+  muteBtn.addEventListener("click", () => {
+    AudioEngine.init();
+    const muted = AudioEngine.toggleMute();
+    muteBtn.textContent = muted ? "🔇 Mute" : "🔊 " + Math.round(AudioEngine.userVolume * 100) + "%";
+  });
+
+  /* ================= EXPORT (WebM master + MP4 via ffmpeg.wasm) ================= */
+  const exportBtn = document.getElementById("exportBtn");
+  const convertMp4Btn = document.getElementById("convertMp4Btn");
+  const downloadWebm = document.getElementById("downloadWebm");
+  const downloadMp4 = document.getElementById("downloadMp4");
+  const progressFill = document.getElementById("progressFill");
+  const statusMsg = document.getElementById("statusMsg");
+  const pctMsg = document.getElementById("pctMsg");
+  const mp4StatusMsg = document.getElementById("mp4StatusMsg");
+
+  function detectBestExportCodec() {
+    const cands = [
+      { mimeType: 'video/webm;codecs=vp9,opus', ext: "webm" },
+      { mimeType: 'video/webm;codecs=vp8,opus', ext: "webm" },
+      { mimeType: "video/webm", ext: "webm" }
+    ];
+    for (const c of cands) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(c.mimeType)) return c;
+    }
+    return { mimeType: "", ext: "webm" };
+  }
+
+  async function startVideoExport() {
+    if (isExporting) return;
+    statusMsg.textContent = "Memverifikasi aset & audio...";
+    await AudioEngine.ensure();
+    const codecInfo = detectBestExportCodec();
+    if (!codecInfo.mimeType || typeof canvas.captureStream !== "function") {
+      statusMsg.textContent = "MediaRecorder/captureStream tidak didukung di browser ini.";
+      return;
+    }
+    if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
+    if (masterMp4BlobUrl) { URL.revokeObjectURL(masterMp4BlobUrl); masterMp4BlobUrl = null; }
+    downloadWebm.classList.remove("ready");
+    downloadMp4.classList.remove("ready");
+    convertMp4Btn.disabled = true;
+    mp4StatusMsg.textContent = "Merekam master WebM baru — convert MP4 tersedia setelah master selesai.";
+
+    isExporting = true;
+    exportFrameIndex = 0;
+    exportChunkCount = 0;
+    exportBtn.disabled = true;
+    convertMp4Btn.disabled = true;
+    playBtn.disabled = true;
+    replayBtn.disabled = true;
+    scrubber.disabled = true;
+    exportBtn.textContent = "Merekam Master 30 FPS...";
+    document.getElementById("enginePill").textContent = "REC · 1280×720 30FPS (WEBM)";
+
+    currentTime = 0.0;
+    renderFrame(0.0);
+    const canvasStream = canvas.captureStream(0);
+    activeVideoTrack = canvasStream.getVideoTracks()[0] || null;
+    const audioTracks = AudioEngine.exportDest ? AudioEngine.exportDest.stream.getAudioTracks() : [];
+    const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
+
+    const recordedChunks = [];
+    try {
+      activeMediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: codecInfo.mimeType,
+        videoBitsPerSecond: 12000000,
+        audioBitsPerSecond: 192000
+      });
+    } catch (_) {
+      activeMediaRecorder = new MediaRecorder(combinedStream);
+    }
+    activeMediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) { recordedChunks.push(e.data); exportChunkCount++; }
+    };
+    activeMediaRecorder.onerror = () => {
+      statusMsg.textContent = "Terjadi kesalahan saat merekam. Silakan coba lagi.";
+      cleanupExportState(canvasStream);
+    };
+    activeMediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: codecInfo.mimeType || "video/webm" });
+      masterWebmBlob = blob;
+      currentBlobUrl = URL.createObjectURL(blob);
+      const sizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+      downloadWebm.href = currentBlobUrl;
+      downloadWebm.download = "gemini_recreation.webm";
+      downloadWebm.textContent = "Download WebM Master (" + sizeMB + " MB)";
+      downloadWebm.classList.add("ready");
+      statusMsg.textContent = "Selesai (" + sizeMB + " MB, 1280×720, 30FPS + Audio · " + exportFrameIndex + "/" + TOTAL_FRAMES + " frame, " + exportChunkCount + " chunk)";
+      pctMsg.textContent = "100%";
+      if (exportFrameIndex < TOTAL_FRAMES) {
+        statusMsg.textContent += " — PERINGATAN: hanya " + exportFrameIndex + " frame terekam, export mungkin terpotong.";
+        mp4StatusMsg.textContent = "Master terpotong — jangan convert ke MP4 dari file ini, export WebM ulang.";
+      } else {
+        mp4StatusMsg.textContent = "Memverifikasi durasi master WebM...";
+        const probe = document.createElement("video");
+        probe.preload = "metadata"; probe.muted = true; probe.src = currentBlobUrl;
+        probe.onloadedmetadata = () => {
+          const d = probe.duration;
+          if (Number.isFinite(d)) {
+            statusMsg.textContent += " · durasi file " + d.toFixed(2) + "s";
+            if (d < DURATION - 0.5) {
+              mp4StatusMsg.textContent = "Master hanya " + d.toFixed(2) + " detik — jangan convert, export WebM ulang dengan tab tetap di depan.";
+            } else {
+              convertMp4Btn.disabled = false;
+              mp4StatusMsg.textContent = "Master OK (" + d.toFixed(2) + "s, " + sizeMB + " MB) — siap convert ke MP4.";
+            }
+          } else {
+            convertMp4Btn.disabled = false;
+            mp4StatusMsg.textContent = "Durasi tidak terbaca, tapi frame lengkap — MP4 bisa dicoba.";
+          }
+        };
+        probe.onerror = () => {
+          convertMp4Btn.disabled = false;
+          mp4StatusMsg.textContent = "Verifikasi durasi gagal dibaca — MP4 bisa dicoba.";
+        };
+      }
+      cleanupExportState(canvasStream);
+      downloadWebm.click();
+    };
+
+    activeMediaRecorder.start(500);
+    AudioEngine.play(0);
+    // Loop export: 1 frame per tick, frame-index driven (bukan jam audio)
+    function exportTick() {
+      if (!isExporting) return;
+      if (exportFrameIndex >= TOTAL_FRAMES) {
+        currentTime = DURATION;
+        renderFrame(currentTime);
+        if (activeVideoTrack && typeof activeVideoTrack.requestFrame === "function") {
+          try { activeVideoTrack.requestFrame(); } catch (_) {}
+        }
+        finishVideoExport();
+        return;
+      }
+      currentTime = exportFrameIndex / EXPORT_FPS;
+      renderFrame(currentTime);
+      updateUI();
+      const pct = Math.round((exportFrameIndex / TOTAL_FRAMES) * 100);
+      progressFill.style.width = pct + "%";
+      pctMsg.textContent = pct + "%";
+      statusMsg.textContent = "Merekam 30FPS (frame " + exportFrameIndex + "/" + TOTAL_FRAMES + " · " + currentTime.toFixed(1) + "s / " + DURATION.toFixed(2) + "s)...";
+      if (activeVideoTrack && typeof activeVideoTrack.requestFrame === "function") {
+        try { activeVideoTrack.requestFrame(); } catch (_) {}
+      }
+      exportFrameIndex++;
+      setTimeout(exportTick, 0);
+    }
+    exportTick();
+  }
+
+  function finishVideoExport() {
+    isPlaying = false;
+    AudioEngine.pause();
+    if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
+      try { activeMediaRecorder.requestData(); } catch (_) {}
+      setTimeout(() => {
+        if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
+          activeMediaRecorder.stop();
+        }
+      }, 700);
+    }
+  }
+
+  function cleanupExportState(canvasStream) {
+    isExporting = false;
+    activeVideoTrack = null;
+    exportBtn.disabled = false;
+    playBtn.disabled = false;
+    replayBtn.disabled = false;
+    scrubber.disabled = false;
+    exportBtn.textContent = "Export WebM Master (22.33s)";
+    document.getElementById("enginePill").textContent = "EXPORT SIAP · 22.33S";
+    if (canvasStream) canvasStream.getVideoTracks().forEach((tr) => tr.stop());
+  }
+
+  async function convertMasterToMp4() {
+    if (isConvertingMp4 || isExporting) return;
+    if (!masterWebmBlob) {
+      mp4StatusMsg.textContent = "Belum ada master WebM — tekan Export WebM Master dulu.";
+      return;
+    }
+    isConvertingMp4 = true;
+    convertMp4Btn.disabled = true;
+    exportBtn.disabled = true;
+    convertMp4Btn.textContent = "Converting ke MP4...";
+    progressFill.style.width = "5%";
+    pctMsg.textContent = "5%";
+    try {
+      if (!ffmpegLoaded) {
+        mp4StatusMsg.textContent = "Memuat mesin convert MP4 (ffmpeg.wasm ~31 MB, sekali saja, butuh internet)...";
+        const ffmpegMod = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.15/+esm");
+        const utilMod = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.2/+esm");
+        ffmpegInstance = new ffmpegMod.FFmpeg();
+        ffmpegInstance.on("progress", ({ progress, time }) => {
+          const p = progress != null ? progress : (time ? time / (DURATION * 1000000) : 0);
+          const pct = Math.round(clamp(p, 0, 1) * 100);
+          progressFill.style.width = pct + "%";
+          pctMsg.textContent = pct + "%";
+          mp4StatusMsg.textContent = "Converting ke MP4... " + pct + "%";
+        });
+        const baseURL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
+        await ffmpegInstance.load({
+          coreURL: await utilMod.toBlobURL(baseURL + "/ffmpeg-core.js", "text/javascript"),
+          wasmURL: await utilMod.toBlobURL(baseURL + "/ffmpeg-core.wasm", "application/wasm")
+        });
+        ffmpegLoaded = true;
+      }
+      mp4StatusMsg.textContent = "Menulis master WebM ke mesin convert...";
+      const masterBytes = new Uint8Array(await masterWebmBlob.arrayBuffer());
+      await ffmpegInstance.writeFile("master.webm", masterBytes);
+      mp4StatusMsg.textContent = "Transcode ke MP4 (H.264 CRF 16 + AAC 192k, 1280×720 30fps)...";
+      await ffmpegInstance.exec([
+        "-i", "master.webm",
+        "-c:v", "libx264", "-crf", "16", "-preset", "medium",
+        "-pix_fmt", "yuv420p", "-r", "30",
+        "-c:a", "aac", "-b:a", "192k",
+        "-movflags", "+faststart", "-y", "output.mp4"
+      ]);
+      const data = await ffmpegInstance.readFile("output.mp4");
+      if (!data || data.length === 0) throw new Error("file MP4 hasil convert kosong");
+      const mp4Blob = new Blob([data], { type: "video/mp4" });
+      if (masterMp4BlobUrl) URL.revokeObjectURL(masterMp4BlobUrl);
+      masterMp4BlobUrl = URL.createObjectURL(mp4Blob);
+      const sizeMB = (mp4Blob.size / (1024 * 1024)).toFixed(2);
+      downloadMp4.href = masterMp4BlobUrl;
+      downloadMp4.download = "gemini_recreation.mp4";
+      downloadMp4.textContent = "Download MP4 (" + sizeMB + " MB .mp4)";
+      downloadMp4.classList.add("ready");
+      const probe = document.createElement("video");
+      probe.preload = "metadata"; probe.muted = true; probe.src = masterMp4BlobUrl;
+      probe.onloadedmetadata = () => {
+        const d = probe.duration;
+        if (Number.isFinite(d)) {
+          mp4StatusMsg.textContent = "Selesai MP4 (" + sizeMB + " MB, durasi file " + d.toFixed(2) + "s, H.264 CRF 16 + AAC 192k).";
+          if (d < DURATION - 0.5) mp4StatusMsg.textContent += " PERINGATAN: durasi MP4 pendek — coba convert ulang.";
+        } else {
+          mp4StatusMsg.textContent = "Selesai MP4 (" + sizeMB + " MB, H.264 CRF 16 + AAC 192k).";
+        }
+      };
+      probe.onerror = () => { mp4StatusMsg.textContent = "Selesai MP4 (" + sizeMB + " MB, H.264 CRF 16 + AAC 192k)."; };
+      try { await ffmpegInstance.deleteFile("master.webm"); } catch (_) {}
+      try { await ffmpegInstance.deleteFile("output.mp4"); } catch (_) {}
+      progressFill.style.width = "100%";
+      pctMsg.textContent = "100%";
+      downloadMp4.click();
+    } catch (err) {
+      mp4StatusMsg.textContent = "Gagal convert ke MP4: " + (err && err.message ? err.message : err) + ". WebM master tetap bisa diunduh. Alternatif offline: ffmpeg -i hasil.webm -c:v libx264 -crf 16 -c:a aac hasil.mp4";
+      progressFill.style.width = "0%";
+      pctMsg.textContent = "0%";
+    } finally {
+      isConvertingMp4 = false;
+      convertMp4Btn.disabled = !masterWebmBlob;
+      convertMp4Btn.textContent = "Convert ke MP4 (H.264)";
+      exportBtn.disabled = false;
+    }
+  }
+
+  exportBtn.addEventListener("click", startVideoExport);
+  convertMp4Btn.addEventListener("click", convertMasterToMp4);
+
+  /* ================= INIT ================= */
+  renderFrame(0);
+  updateUI();
+})();
+</script>
+</body>
+</html>

@@ -4,12 +4,14 @@ import { spawn } from "child_process";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import esbuild from "esbuild";
+import { buildV9StandaloneHtmlDocument } from "./src/grok_video_9_html_builder";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Accept raw video/webm payloads up to 150MB for instant native ffmpeg transcoding
+  // Accept raw video/webm payloads up to 150MB for fallback native ffmpeg transcoding
   app.use(
     ["/api/convert-mp4", "/api/normalize-webm"],
     express.raw({ type: ["video/webm", "application/octet-stream", "*/*"], limit: "150mb" })
@@ -158,6 +160,53 @@ async function startServer() {
       try {
         await fs.rm(tmpDir, { recursive: true, force: true });
       } catch (_) {}
+    }
+  });
+
+  app.get("/api/export-video9-html", async (_req, res) => {
+    try {
+      const entryPoint = path.resolve(
+        process.cwd(),
+        "src/grok_video_9_standalone.ts"
+      );
+      const buildResult = await esbuild.build({
+        entryPoints: [entryPoint],
+        bundle: true,
+        write: false,
+        format: "iife",
+        minify: true,
+        target: ["es2020"],
+        platform: "browser",
+      });
+
+      const bundledJs = buildResult.outputFiles?.[0]?.text;
+      if (!bundledJs) {
+        res.status(500).json({ error: "Failed to bundle standalone Video 9 runtime" });
+        return;
+      }
+
+      const htmlDoc = buildV9StandaloneHtmlDocument(bundledJs, {
+        title: "Grok 4.7 Director's Cut — Video 9 (1080p · 60FPS Interactive Player)",
+        durationSec: 30.0,
+        totalFrames: 1800,
+      });
+
+      const htmlBuf = Buffer.from(htmlDoc, "utf8");
+      const isInline = _req.query.inline === "1";
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Content-Length", htmlBuf.length.toString());
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader(
+        "Content-Disposition",
+        isInline
+          ? 'inline; filename="grok_4_7_directors_cut_video9_1080p_60fps.html"'
+          : 'attachment; filename="grok_4_7_directors_cut_video9_1080p_60fps.html"'
+      );
+      res.send(htmlBuf);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Error in /api/export-video9-html:", msg);
+      res.status(500).json({ error: msg });
     }
   });
 

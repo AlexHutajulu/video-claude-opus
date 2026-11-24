@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { OFFICIAL_CLAUDE_LOGO_SRC, USER_SOUNDTRACK_SRC } from "./assetsData.ts";
+import { exportOffline, computeBeatTrack } from "./offlineExport.ts";
 import {
   WIDTH,
   HEIGHT,
@@ -627,7 +628,6 @@ export function initExplainerEngine(): () => void {
         // drawImage(stageCanvas) readbacks!
         captureBackdropBlur(time, fx, fy, beat, masterVis, hubX = -1, hubY = -1, hubRadius = 0) {
           if (!this.backdropBlurCtx || !this.blurStageACtx || !this.blurStageBCtx) return;
-          if (hubRadius === 0 && (this.blurFrameTick++ & 1) !== 0) return;
           const bw = this.BLUR_W;
           const bh = this.BLUR_H;
           const mw = this.MIP_W;
@@ -1077,7 +1077,7 @@ export function initExplainerEngine(): () => void {
           const prevTime = Math.max(0, time - 0.042);
           const prevOrbWeight = smoothstep(0.4, 1.8, prevTime);
 
-          for (let i = 0; i < activeCount; i++) {
+          for (let i = 0; i < this.PARTICLE_COUNT; i++) {
             const speed = this.pSpeed[i];
             const phase = this.pPhase[i];
             const dx0 = this.pDriftX[i];
@@ -1327,7 +1327,7 @@ export function initExplainerEngine(): () => void {
           vfx.drawStarburstEmblem(ctx, cortexX, cortexY, 44, 0, sceneAlpha, true);
 
           // Update backdrop blur so the 6 satellite Liquid Glass cards blur the polyhedron & petals behind them
-          vfx.captureBackdropBlur(ctx.canvas);
+          vfx.captureBackdropBlur(time, cortexX, cortexY, 0.2, sceneAlpha, cortexX, cortexY, cortexRadius);
 
           for (let i = 0; i < SCENE02_SATELLITES.length; i++) {
             const sat = SCENE02_SATELLITES[i];
@@ -2128,7 +2128,7 @@ export function initExplainerEngine(): () => void {
 
           // Pure analytical C-infinity camera state: zero stateful frame-lag jitter
           const rawBeat = clamp(this.beatLevel || 0, 0, 1);
-          this.smoothBeat += (rawBeat - this.smoothBeat) * 0.22;
+          this.smoothBeat = rawBeat;
           const camState = computeDeterministicCameraState(time, this.smoothBeat);
           const camZoom = camState.camZoom;
           const fx = camState.fx;
@@ -2257,8 +2257,14 @@ export function initExplainerEngine(): () => void {
           this.beatLevel = 0;
           this.musicEnabled = true;
           this.soundtrackReady = false;
+          this.timeBase = null;          // null = realtime; angka = waktu jadwal offline (detik)
+          this.soundtrackBuffer = null;  // AudioBuffer soundtrack hasil decode (untuk beat track)
 
           this.buildSynchronizedCueSheet();
+        }
+
+        getNow() {
+          return this.timeBase !== null ? this.timeBase : this.ctx.currentTime;
         }
 
         buildSynchronizedCueSheet() {
@@ -2417,7 +2423,7 @@ export function initExplainerEngine(): () => void {
         }
 
         setupContinuousBassAndDrone() {
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
 
           this.subOsc = this.ctx.createOscillator();
           this.subOsc.type = "sine";
@@ -2498,7 +2504,7 @@ export function initExplainerEngine(): () => void {
 
         playFuturisticPulse(freq, peakGain) {
           if (!this.ctx) return;
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
           const osc = this.ctx.createOscillator();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
@@ -2526,7 +2532,7 @@ export function initExplainerEngine(): () => void {
 
         playParticleSparkle(freq, peakGain, duration) {
           if (!this.ctx) return;
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
           const carrier = this.ctx.createOscillator();
           const mod = this.ctx.createOscillator();
           const modGain = this.ctx.createGain();
@@ -2557,7 +2563,7 @@ export function initExplainerEngine(): () => void {
 
         playDigitalActivation(duration, startFreq, endFreq, peakGain) {
           if (!this.ctx) return;
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
           const osc1 = this.ctx.createOscillator();
           const osc2 = this.ctx.createOscillator();
           const filter = this.ctx.createBiquadFilter();
@@ -2593,7 +2599,7 @@ export function initExplainerEngine(): () => void {
 
         playTransitionWhoosh(duration, lowF, highF, peakGain) {
           if (!this.ctx || !this.noiseBuffer) return;
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
           const src = this.ctx.createBufferSource();
           src.buffer = this.noiseBuffer;
 
@@ -2620,7 +2626,7 @@ export function initExplainerEngine(): () => void {
 
         playCinematicRiser(duration, startF, endF, peakGain) {
           if (!this.ctx) return;
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
           const osc = this.ctx.createOscillator();
           const filter = this.ctx.createBiquadFilter();
           const gain = this.ctx.createGain();
@@ -2649,7 +2655,7 @@ export function initExplainerEngine(): () => void {
 
         playTitleImpact(baseFreq, duration, peakGain) {
           if (!this.ctx) return;
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
           const boomOsc = this.ctx.createOscillator();
           const boomGain = this.ctx.createGain();
           boomOsc.type = "sine";
@@ -2670,7 +2676,7 @@ export function initExplainerEngine(): () => void {
 
         playInterfaceInteraction(freq, peakGain) {
           if (!this.ctx) return;
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
 
@@ -2692,7 +2698,7 @@ export function initExplainerEngine(): () => void {
 
         playConfirmationTone(chordFreqs, duration, peakGain) {
           if (!this.ctx) return;
-          const now = this.ctx.currentTime;
+          const now = this.getNow();
           const filter = this.ctx.createBiquadFilter();
           filter.type = "lowpass";
           filter.frequency.setValueAtTime(420, now);
@@ -2847,6 +2853,88 @@ export function initExplainerEngine(): () => void {
           this.analyser.getByteFrequencyData(this.freqData);
           return this.freqData;
         }
+
+        // Versi offline dari init(): graph identik, tapi tanpa MediaStreamDestination/<audio>/Analyser.
+        async initOffline(durationSec, sampleRate = 48000) {
+          const ctx = new OfflineAudioContext(2, Math.ceil(durationSec * sampleRate), sampleRate);
+          this.ctx = ctx;
+          this.timeBase = 0;
+
+          this.synthGain = ctx.createGain();
+          this.synthGain.gain.setValueAtTime(0.55, 0);
+
+          this.compressor = ctx.createDynamicsCompressor();
+          this.compressor.threshold.setValueAtTime(-10, 0);
+          this.compressor.knee.setValueAtTime(12, 0);
+          this.compressor.ratio.setValueAtTime(8, 0);
+          this.compressor.attack.setValueAtTime(0.003, 0);
+          this.compressor.release.setValueAtTime(0.2, 0);
+          this.synthGain.connect(this.compressor);
+
+          this.masterGain = ctx.createGain();
+          this.masterGain.gain.setValueAtTime(0.9, 0);
+          this.compressor.connect(this.masterGain);
+          this.masterGain.connect(ctx.destination);
+
+          this.reverbNode = this.createImpulseReverb(2.6, 2.3);
+          this.reverbGain = ctx.createGain();
+          this.reverbGain.gain.setValueAtTime(0.36, 0);
+          this.reverbNode.connect(this.reverbGain);
+          this.reverbGain.connect(this.synthGain);
+
+          this.noiseBuffer = this.createNoiseBuffer(2.5);
+          this.setupContinuousBassAndDrone();   // memakai this.ctx -> sekarang OfflineAudioContext
+
+          // Soundtrack: decode data-URI jadi AudioBuffer (bukan elemen <audio>).
+          this.soundtrackBuffer = null;
+          if (this.musicEnabled) {
+            try {
+              const arr = await (await fetch(USER_SOUNDTRACK_SRC)).arrayBuffer();
+              this.soundtrackBuffer = await ctx.decodeAudioData(arr);
+              const src = ctx.createBufferSource();
+              src.buffer = this.soundtrackBuffer;
+              const g = ctx.createGain();
+              g.gain.setValueAtTime(0.9, 0);
+              src.connect(g);
+              g.connect(this.compressor);        // sama seperti realtime: musik -> compressor
+              src.start(0, 0, Math.min(this.soundtrackBuffer.duration, durationSec));
+            } catch (e) {
+              console.warn("Soundtrack offline gagal di-decode, lanjut tanpa musik:", e);
+              this.soundtrackBuffer = null;
+            }
+          }
+          this.isInitialized = true;
+        }
+
+        // Salinan matematika updateContinuousTimeline, tapi sebagai AUTOMATION pada waktu t (bukan "sekarang").
+        scheduleContinuousAt(t) {
+          if (t <= 0.01 || t >= DURATION) {
+            this.subGain.gain.setTargetAtTime(0.0, t, 0.06);
+            this.droneGain.gain.setTargetAtTime(0.0, t, 0.06);
+            return;
+          }
+          const fadeIn = smoothstep(0.0, 0.8, t);
+          const fadeOut = 1.0 - smoothstep(28.2, 29.9, t);
+          const env = fadeIn * fadeOut;
+          const subFreq = t < 5.0 ? 55.0 : t < 15.0 ? 44.0 : t < 26.8 ? 48.99 : 36.71;
+          this.subOsc.frequency.setTargetAtTime(subFreq, t, 0.1);
+          this.subGain.gain.setTargetAtTime(0.26 * env, t, 0.08);
+          const cutoff = 320 + Math.sin(t * 0.9) * 120 + (t > 20 ? 180 : 0);
+          this.droneFilter.frequency.setTargetAtTime(cutoff, t, 0.1);
+          this.droneGain.gain.setTargetAtTime(0.11 * env, t, 0.08);
+        }
+
+        // Jadwalkan semua cue + drone pada waktu tepat, lalu render lebih cepat dari real-time.
+        async renderOfflineMix(durationSec) {
+          const steps = Math.round(durationSec * 60);
+          for (let i = 0; i <= steps; i++) this.scheduleContinuousAt(i / 60);
+          for (const cue of this.cues) {
+            this.timeBase = cue.time;   // semua play* memakai getNow() -> waktu cue
+            cue.fn();
+          }
+          this.timeBase = null;
+          return await this.ctx.startRendering();   // AudioBuffer stereo 48 kHz
+        }
       }
 
       /* ==========================================================================
@@ -2896,6 +2984,43 @@ export function initExplainerEngine(): () => void {
       const exportStatusMsg = document.getElementById("exportStatusMsg");
       const exportPctMsg = document.getElementById("exportPctMsg");
       const codecBadge = document.getElementById("codecBadge");
+
+      // Export Audio Options (Dengan Musik / Tanpa Musik / Mute)
+      const exportAudioModeBadge = document.getElementById("exportAudioModeBadge");
+      const exportOptWithMusic = document.getElementById("exportOptWithMusic");
+      const exportOptNoMusic = document.getElementById("exportOptNoMusic");
+      const exportOptMute = document.getElementById("exportOptMute");
+      let exportAudioMode = "with-music"; // "with-music" | "no-music" | "mute"
+
+      function setExportAudioMode(mode) {
+        exportAudioMode = mode;
+        if (exportOptWithMusic) exportOptWithMusic.classList.toggle("active", mode === "with-music");
+        if (exportOptNoMusic) exportOptNoMusic.classList.toggle("active", mode === "no-music");
+        if (exportOptMute) exportOptMute.classList.toggle("active", mode === "mute");
+
+        if (mode === "with-music") {
+          if (exportAudioModeBadge) {
+            exportAudioModeBadge.textContent = "DENGAN MUSIK";
+            exportAudioModeBadge.style.color = "var(--accent-orange-bright)";
+          }
+          if (exportBtnText) exportBtnText.textContent = "Export WebM + MP4 (Dengan Musik)";
+          if (codecBadge) codecBadge.textContent = "WEBM + MP4 · 60 FPS CFR · MUSIK + SFX";
+        } else if (mode === "no-music") {
+          if (exportAudioModeBadge) {
+            exportAudioModeBadge.textContent = "TANPA MUSIK (SFX)";
+            exportAudioModeBadge.style.color = "#a9f0c9";
+          }
+          if (exportBtnText) exportBtnText.textContent = "Export WebM + MP4 (Tanpa Musik)";
+          if (codecBadge) codecBadge.textContent = "WEBM + MP4 · 60 FPS CFR · SFX ONLY";
+        } else {
+          if (exportAudioModeBadge) {
+            exportAudioModeBadge.textContent = "MUTE (HENING)";
+            exportAudioModeBadge.style.color = "var(--text-muted)";
+          }
+          if (exportBtnText) exportBtnText.textContent = "Export WebM + MP4 (Mute / Hening)";
+          if (codecBadge) codecBadge.textContent = "WEBM + MP4 · 60 FPS CFR · NO AUDIO";
+        }
+      }
 
       // Master Playback & Adaptive Quality State
       let currentTime = 0.0;
@@ -3014,33 +3139,11 @@ export function initExplainerEngine(): () => void {
       function tick(now) {
         if (!isPlaying) return;
 
-        // Guard against duplicate ticks within <7ms when hybrid rAF + exportPacerInterval both fire
-        if (isExporting && now - lastExportFramePerf < EXPORT_FRAME_MS * 0.48) {
-          return;
-        }
-
         const rawDt = (now - lastFramePerf) / 1000;
         const dt = clamp(rawDt, 0.001, 0.05);
         lastFramePerf = now;
-        lastExportFramePerf = now;
 
-        // PTS-LOCKED REALTIME CLOCK:
-        // MediaRecorder stamps each captured video frame with the wall-clock/audio time when it is pushed.
-        // Locking currentTime to the monotonic AudioContext/performance clock guarantees that every
-        // rendered frame's visual state matches its exact container PTS timestamp (zero judder, zero drift).
-        if (isExporting) {
-          const wallElapsed = (now - exportStartPerf) / 1000;
-          const audioElapsed =
-            audioEngine.isInitialized && audioEngine.ctx && audioEngine.ctx.state === "running"
-              ? audioEngine.ctx.currentTime - audioClockBase
-              : wallElapsed;
-          // Blend audio & monotonic wall clock if AudioContext is active, otherwise use monotonic wall clock
-          const lockedElapsed =
-            audioEngine.isInitialized && audioEngine.ctx && audioEngine.ctx.state === "running" && audioElapsed >= 0
-              ? audioElapsed
-              : wallElapsed;
-          currentTime = clamp(lockedElapsed, 0.0, DURATION);
-        } else if (audioEngine.isInitialized && audioEngine.ctx && audioEngine.ctx.state === "running") {
+        if (audioEngine.isInitialized && audioEngine.ctx && audioEngine.ctx.state === "running") {
           const audioElapsed = audioEngine.ctx.currentTime - audioClockBase;
           currentTime = timelineClockBase + audioElapsed;
         } else {
@@ -3050,20 +3153,9 @@ export function initExplainerEngine(): () => void {
         if (currentTime >= DURATION) {
           currentTime = DURATION;
           masterRenderer.renderFrame(DURATION);
-          if (isExporting && activeVideoTrack && typeof activeVideoTrack.requestFrame === "function") {
-            try { activeVideoTrack.requestFrame(); } catch (_) {}
-            exportFrameIndex++;
-          }
           audioEngine.updateContinuousTimeline(DURATION, false);
           updateUIForTime(DURATION, true);
-
-          if (isExporting) {
-            exportProgressFill.style.width = "100%";
-            exportPctMsg.textContent = "100%";
-            finishVideoExport();
-          } else {
-            pausePlayback(true);
-          }
+          pausePlayback(true);
           return;
         }
 
@@ -3076,13 +3168,6 @@ export function initExplainerEngine(): () => void {
         const tRender0 = performance.now();
         masterRenderer.renderFrame(smoothedRenderTime);
         const renderMs = performance.now() - tRender0;
-
-        if (isExporting) {
-          if (activeVideoTrack && typeof activeVideoTrack.requestFrame === "function") {
-            try { activeVideoTrack.requestFrame(); } catch (_) {}
-          }
-          exportFrameIndex++;
-        }
 
         audioEngine.updateContinuousTimeline(currentTime, true);
         updateAdaptiveQuality(renderMs, rawDt);
@@ -3101,13 +3186,6 @@ export function initExplainerEngine(): () => void {
         if (now - lastUiUpdatePerf >= 50) {
           lastUiUpdatePerf = now;
           updateUIForTime(currentTime, false);
-
-          if (isExporting) {
-            const expPct = Math.min(100, Math.round((currentTime / DURATION) * 100));
-            exportProgressFill.style.width = `${expPct}%`;
-            exportPctMsg.textContent = `${expPct}%`;
-            exportStatusMsg.textContent = `Merekam Master 60FPS (${exportFrameIndex} frame · ${currentTime.toFixed(1)}s / 30.0s)...`;
-          }
         }
 
         if (isPlaying) {
@@ -3126,7 +3204,6 @@ export function initExplainerEngine(): () => void {
         }
 
         const nowPerf = performance.now();
-        exportStartPerf = nowPerf;
         if (audioEngine.ctx) {
           audioClockBase = audioEngine.ctx.currentTime;
           timelineClockBase = currentTime;
@@ -3143,20 +3220,8 @@ export function initExplainerEngine(): () => void {
         }
 
         lastFramePerf = nowPerf;
-        lastExportFramePerf = 0;
         stopAnimationLoop();
         rafId = requestAnimationFrame(tick);
-
-        // During export, run a high-precision 60Hz backup pacer so frames never stall even if rAF dips
-        if (isExporting) {
-          exportPacerInterval = setInterval(() => {
-            if (!isPlaying || !isExporting) return;
-            const pNow = performance.now();
-            if (pNow - lastExportFramePerf >= EXPORT_FRAME_MS - 1.2) {
-              tick(pNow);
-            }
-          }, 8);
-        }
       }
 
       function pausePlayback(endedNaturally = false) {
@@ -3170,28 +3235,7 @@ export function initExplainerEngine(): () => void {
         engineStateLabel.textContent = endedNaturally ? "SELESAI · 30.00S" : "PAUSED · STANDBY";
       }
 
-      function detectBestExportCodec(hasAudio = true) {
-        if (typeof MediaRecorder === "undefined") return { mimeType: "", ext: "webm" };
-        // Prefer VP8 first for ultra-low-latency real-time 60FPS GPU encoding without CPU frame drops
-        const candidates = hasAudio
-          ? [
-              { mimeType: "video/webm;codecs=vp8,opus", ext: "webm" },
-              { mimeType: "video/webm;codecs=vp9,opus", ext: "webm" },
-              { mimeType: "video/webm;codecs=vp8", ext: "webm" },
-              { mimeType: "video/webm", ext: "webm" },
-            ]
-          : [
-              { mimeType: "video/webm;codecs=vp8", ext: "webm" },
-              { mimeType: "video/webm;codecs=vp9", ext: "webm" },
-              { mimeType: "video/webm", ext: "webm" },
-            ];
-        for (let i = 0; i < candidates.length; i++) {
-          if (MediaRecorder.isTypeSupported(candidates[i].mimeType)) {
-            return candidates[i];
-          }
-        }
-        return { mimeType: "", ext: "webm" };
-      }
+      let exportAbort = null;
 
       async function ensureAllAssetsReady() {
         if (document.fonts && document.fonts.ready) {
@@ -3206,235 +3250,172 @@ export function initExplainerEngine(): () => void {
       }
 
       /* ======================================================================
-       * EXPORT ENGINE v5 — GPU-ACCELERATED 60FPS CAPTURE + NATIVE FFMPEG CFR
-       * 1. Captures 1080×1920 @ 60FPS directly on GPU (2.1ms/frame, 0 drop)
-       *    via canvas.captureStream(60) + MediaRecorder at 8 Mbps (avoiding
-       *    new VideoFrame(canvas) which triggers Chromium's CPU readback penalty).
-       * 2. Normalizes WebM via POST /api/normalize-webm (-vf fps=60 -r 60 -vsync cfr)
-       *    so the downloaded .webm has exact 60.00 FPS CFR & Duration headers.
-       * 3. Automatically transcodes to H.264 High@L4.2 + AAC 192k MP4 via
-       *    POST /api/convert-mp4 (-vf fps=60 -r 60 -vsync cfr -movflags +faststart).
+       * DETERMINISTIC FRAME-BY-FRAME OFFLINE EXPORT (WebCodecs + muxers)
+       * Renders exact 1,800 frames (60.000 fps CFR) with synchronized
+       * offline rendered 48kHz audio and deterministic beat track.
        * ====================================================================== */
       async function startVideoExport() {
         if (isExporting || isConvertingMp4) return;
+        if (isPlaying) pausePlayback(false);
 
-        if (isPlaying) {
-          pausePlayback(false);
-        }
-
-        exportStatusMsg.textContent = "Memverifikasi aset, logo, font & kesiapan audio 48kHz...";
-        await ensureAllAssetsReady();
-
-        const audioTracks = audioEngine.exportDest ? audioEngine.exportDest.stream.getAudioTracks() : [];
-        const codecInfo = detectBestExportCodec(audioTracks.length > 0);
-        if (!codecInfo.mimeType || typeof canvas.captureStream !== "function") {
-          exportStatusMsg.textContent = "MediaRecorder / captureStream tidak didukung di browser ini.";
+        if (typeof VideoEncoder === "undefined" || typeof VideoFrame === "undefined") {
+          exportStatusMsg.textContent = "Browser tidak mendukung WebCodecs. Gunakan Chrome / Edge desktop terbaru.";
           return;
         }
 
-        if (currentBlobUrl) {
-          URL.revokeObjectURL(currentBlobUrl);
-          currentBlobUrl = null;
-        }
-        if (masterMp4BlobUrl) {
-          URL.revokeObjectURL(masterMp4BlobUrl);
-          masterMp4BlobUrl = null;
-        }
+        exportStatusMsg.textContent = "Memverifikasi aset, logo & font...";
+        await ensureAllAssetsReady();
+        masterRenderer.vfx.tryBuildOfficialLogoSprites();
+
+        if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
+        if (masterMp4BlobUrl) { URL.revokeObjectURL(masterMp4BlobUrl); masterMp4BlobUrl = null; }
         downloadVideoLink.classList.remove("ready");
         downloadMp4Link.classList.remove("ready");
-        convertMp4Btn.disabled = true;
 
         isExporting = true;
-        exportFrameIndex = 0;
-        exportTotalFrames = Math.round(DURATION * EXPORT_FPS);
-        exportChunkCount = 0;
-        droppedFramesCount = 0;
-        masterRenderer.qualityScale = 1.0;
-
+        exportAbort = new AbortController();
         exportVideoBtn.disabled = true;
-        convertMp4Btn.disabled = true;
+        if (convertMp4Btn) convertMp4Btn.disabled = true;
         replayBtn.disabled = true;
         timelineScrubber.disabled = true;
         stageOverlay.classList.add("hidden");
-        exportBtnText.textContent = "Merekam 60FPS GPU (0 Drop)...";
+        exportBtnText.textContent = exportAudioMode === "no-music"
+          ? "Mengekspor 60 FPS (Tanpa Musik)..."
+          : exportAudioMode === "mute"
+          ? "Mengekspor 60 FPS (Mute)..."
+          : "Mengekspor 60 FPS (Dengan Musik)...";
         engineStatePill.classList.add("recording");
-        engineStateLabel.textContent = "REC MASTER · 60FPS GPU";
-        qualityTierBadge.textContent = "TIER: MASTER 60FPS CFR · 0 DROP";
-        mp4StatusMsg.textContent = "Merekam master 60FPS — otomatis normalisasi CFR & convert ke MP4 setelah selesai...";
-
-        currentTime = 0.0;
-        masterRenderer.renderFrame(0.0);
-
-        const canvasStream = canvas.captureStream(60);
-        activeVideoTrack = canvasStream.getVideoTracks()[0] || null;
-        const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
-
-        const recordedChunks = [];
-        try {
-          activeMediaRecorder = new MediaRecorder(combinedStream, {
-            mimeType: codecInfo.mimeType,
-            videoBitsPerSecond: 8000000,
-            audioBitsPerSecond: 192000,
-          });
-        } catch (err) {
-          activeMediaRecorder = new MediaRecorder(combinedStream);
-        }
-
-        activeMediaRecorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            recordedChunks.push(event.data);
-            exportChunkCount++;
-          }
-        };
-
-        activeMediaRecorder.onerror = () => {
-          exportStatusMsg.textContent = "Terjadi kesalahan saat merekam. Silakan coba lagi.";
-          cleanupExportState(canvasStream);
-        };
-
-        activeMediaRecorder.onstop = async () => {
-          const rawBlob = new Blob(recordedChunks, { type: codecInfo.mimeType || "video/webm" });
-          let finalWebmBlob = rawBlob;
-
-          // Normalize WebM container to strict 60.00 FPS Constant Frame Rate (CFR) with full Matroska Cues & Duration header
-          try {
-            exportStatusMsg.textContent = "Menormalisasi kontainer WebM ke 60.00 FPS Constant Frame Rate (CFR)...";
-            exportProgressFill.style.width = "94%";
-            exportPctMsg.textContent = "94%";
-            const normResp = await fetch("/api/normalize-webm", {
-              method: "POST",
-              headers: { "Content-Type": "application/octet-stream" },
-              body: rawBlob,
-            });
-            if (normResp.ok) {
-              const normBuf = await normResp.arrayBuffer();
-              if (normBuf && normBuf.byteLength > 1024) {
-                finalWebmBlob = new Blob([normBuf], { type: "video/webm" });
-              }
-            }
-          } catch (normErr) {
-            console.warn("WebM CFR normalization fallback to raw blob:", normErr);
-          }
-
-          masterWebmBlob = finalWebmBlob;
-          currentBlobUrl = URL.createObjectURL(finalWebmBlob);
-          const sizeMB = (finalWebmBlob.size / (1024 * 1024)).toFixed(2);
-          const fileName = `claude_opus_5_5_explainer_60fps.${codecInfo.ext}`;
-
-          downloadVideoLink.href = currentBlobUrl;
-          downloadVideoLink.download = fileName;
-          downloadBtnText.textContent = `Download WebM 60FPS (${sizeMB} MB .${codecInfo.ext})`;
-          downloadVideoLink.classList.add("ready");
-
-          exportStatusMsg.textContent = `Selesai Master WebM (${sizeMB} MB · 1080×1920 · 60.00 FPS CFR · 0 lag)`;
-          exportProgressFill.style.width = "100%";
-          exportPctMsg.textContent = "100%";
-
-          cleanupExportState(canvasStream);
-
-          // Automatically convert to H.264 MP4 60.00 FPS CFR so MP4 download is immediately ready!
-          await convertMasterToMp4(false);
-        };
-
-        await startPlayback(true);
-        activeMediaRecorder.start(250);
-      }
-
-      function finishVideoExport() {
-        isPlaying = false;
-        audioEngine.pauseSoundtrack();
-        stopAnimationLoop();
-        audioEngine.updateContinuousTimeline(DURATION, false);
-        setPlayButtonState(false);
-
-        if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
-          try { activeMediaRecorder.requestData(); } catch (_) {}
-          setTimeout(() => {
-            if (activeMediaRecorder && activeMediaRecorder.state !== "inactive") {
-              activeMediaRecorder.stop();
-            }
-          }, 300);
-        }
-      }
-
-      /* ======================================================================
-       * EXPORT ENGINE v5 — NATIVE H.264 60.00 FPS CFR MP4 TRANSCODER
-       * Server-side native /usr/bin/ffmpeg via POST /api/convert-mp4
-       * (-vf fps=60 -r 60 -vsync cfr -c:v libx264 -preset veryfast
-       *  -profile:v high -level:v 4.2 -pix_fmt yuv420p -crf 17 -maxrate 8M
-       *  -bufsize 16M -g 60 -keyint_min 60 -c:a aac -b:a 192k -movflags +faststart)
-       * ====================================================================== */
-      async function convertMasterToMp4(autoClickDownload = true) {
-        if (isConvertingMp4 || isExporting) return;
-        if (!masterWebmBlob) {
-          mp4StatusMsg.textContent = "Belum ada master WebM — tekan Export WebM + MP4 60FPS dulu.";
-          return;
-        }
-        isConvertingMp4 = true;
-        convertMp4Btn.disabled = true;
-        exportVideoBtn.disabled = true;
-        convertMp4BtnText.textContent = "Converting ke MP4 60FPS...";
-        exportProgressFill.style.width = "40%";
-        exportPctMsg.textContent = "40%";
-        mp4StatusMsg.textContent = "Mengonversi ke MP4 (H.264 High@L4.2 · 60.00 FPS Constant Frame Rate + AAC 192k)...";
+        engineStateLabel.textContent = "EXPORT OFFLINE · 60 FPS CFR";
+        qualityTierBadge.textContent = "TIER: MASTER 60FPS · 1080×1920";
 
         try {
-          exportProgressFill.style.width = "65%";
-          exportPctMsg.textContent = "65%";
-          const response = await fetch("/api/convert-mp4", {
-            method: "POST",
-            headers: { "Content-Type": "application/octet-stream" },
-            body: masterWebmBlob,
+          // 1) Audio offline + beat track deterministik berdasarkan pilihan user
+          let mix = null;
+          let beat = null;
+
+          if (exportAudioMode === "mute") {
+            exportStatusMsg.textContent = "Mode Mute: rendering 1.800 frame tanpa audio track...";
+            mix = null;
+            // Beat track fallback deterministik untuk pergerakan partikel visual
+            beat = computeBeatTrack(null, EXPORT_FPS, DURATION);
+          } else {
+            const includeSoundtrack = (exportAudioMode === "with-music");
+            exportStatusMsg.textContent = includeSoundtrack
+              ? "Merender audio offline (Musik + SFX 48 kHz)..."
+              : "Merender audio offline (Hanya SFX tanpa Musik 48 kHz)...";
+
+            const offlineAudio = new AudioGenerationEngine();
+            offlineAudio.musicEnabled = includeSoundtrack;
+            await offlineAudio.initOffline(DURATION, 48000);
+            mix = await offlineAudio.renderOfflineMix(DURATION);
+            beat = computeBeatTrack(offlineAudio.soundtrackBuffer, EXPORT_FPS, DURATION);
+          }
+
+          // 2) Reset state renderer supaya hasil identik tiap export
+          masterRenderer.qualityScale = 1.0;
+          masterRenderer.smoothBeat = 0;
+          masterRenderer.beatLevel = 0;
+
+          // 3) Render frame demi frame -> WebM + MP4 sekaligus
+          const result = await exportOffline({
+            canvas,
+            width: canvas.width,
+            height: canvas.height,
+            fps: EXPORT_FPS,
+            duration: DURATION,
+            targets: ["webm", "mp4"],
+            audio: mix,
+            renderFrame: (t, i) => {
+              masterRenderer.beatLevel = beat[i];
+              masterRenderer.renderFrame(t);
+            },
+            onProgress: (done, total) => {
+              const pct = Math.round((done / total) * 100);
+              exportProgressFill.style.width = pct + "%";
+              exportPctMsg.textContent = pct + "%";
+              exportStatusMsg.textContent = `Render frame ${done}/${total} (${(done / EXPORT_FPS).toFixed(1)}s / ${DURATION.toFixed(1)}s)`;
+              if (done % 30 < 5) updateUIForTime(done / EXPORT_FPS, false);
+            },
+            onStatus: (m) => { exportStatusMsg.textContent = m; },
+            signal: exportAbort.signal,
           });
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData.error || `HTTP ${response.status}`);
-          }
-          const mp4ArrayBuffer = await response.arrayBuffer();
-          if (!mp4ArrayBuffer || mp4ArrayBuffer.byteLength <= 1024) {
-            throw new Error("Hasil konversi MP4 kosong");
-          }
-          const mp4Blob = new Blob([mp4ArrayBuffer], { type: "video/mp4" });
 
-          if (masterMp4BlobUrl) URL.revokeObjectURL(masterMp4BlobUrl);
-          masterMp4BlobUrl = URL.createObjectURL(mp4Blob);
-          const sizeMB = (mp4Blob.size / (1024 * 1024)).toFixed(2);
-          const fileName = "claude_opus_5_5_explainer_60fps.mp4";
-          downloadMp4Link.href = masterMp4BlobUrl;
-          downloadMp4Link.download = fileName;
-          downloadMp4BtnText.textContent = `Download MP4 60FPS (${sizeMB} MB .mp4)`;
-          downloadMp4Link.classList.add("ready");
+          // 4) Tautan unduhan dengan penamaan spesifik
+          const modeSuffix =
+            exportAudioMode === "no-music" ? "_tanpa_musik" :
+            exportAudioMode === "mute" ? "_mute" : "";
+          const modeLabel =
+            exportAudioMode === "no-music" ? "Tanpa Musik" :
+            exportAudioMode === "mute" ? "Mute" : "Musik + SFX";
 
-          mp4StatusMsg.textContent = `Siap diunduh: MP4 60.00 FPS CFR (${sizeMB} MB · durasi 30.00s · H.264 High@L4.2 + AAC 192k · 0 lag).`;
+          if (result.blobs.webm) {
+            masterWebmBlob = result.blobs.webm;
+            currentBlobUrl = URL.createObjectURL(result.blobs.webm);
+            const mb = (result.blobs.webm.size / 1048576).toFixed(2);
+            downloadVideoLink.href = currentBlobUrl;
+            downloadVideoLink.download = `claude_opus_5_5_explainer${modeSuffix}_60fps.webm`;
+            downloadBtnText.textContent = `Download WebM 60FPS (${mb} MB · ${modeLabel})`;
+            downloadVideoLink.classList.add("ready");
+          }
+          if (result.blobs.mp4) {
+            masterMp4BlobUrl = URL.createObjectURL(result.blobs.mp4);
+            const mb = (result.blobs.mp4.size / 1048576).toFixed(2);
+            downloadMp4Link.href = masterMp4BlobUrl;
+            downloadMp4Link.download = `claude_opus_5_5_explainer${modeSuffix}_60fps.mp4`;
+            downloadMp4BtnText.textContent = `Download MP4 60FPS (${mb} MB · ${modeLabel})`;
+            downloadMp4Link.classList.add("ready");
+          }
+          exportStatusMsg.textContent = `Selesai: 1800 frame · 60.00 FPS CFR · WebM + MP4 (${modeLabel}) siap diunduh.`;
+          mp4StatusMsg.textContent = result.warnings.length
+            ? result.warnings.join(" ")
+            : `MP4 H.264 ${exportAudioMode === 'mute' ? '(Video Murni)' : '(Audio 48kHz)'} siap diunduh.`;
           exportProgressFill.style.width = "100%";
           exportPctMsg.textContent = "100%";
-
-          if (autoClickDownload) {
-            downloadMp4Link.click();
-          }
         } catch (err) {
-          mp4StatusMsg.textContent = `Gagal convert ke MP4: ${err && err.message ? err.message : err}.`;
+          console.error("Export gagal:", err);
+          exportStatusMsg.textContent = err && err.name === "AbortError"
+            ? "Export dibatalkan."
+            : `Export gagal: ${err && err.message ? err.message : err}`;
         } finally {
-          isConvertingMp4 = false;
-          convertMp4Btn.disabled = !masterWebmBlob;
-          convertMp4BtnText.textContent = "Convert ke MP4 60FPS (H.264)";
-          exportVideoBtn.disabled = false;
+          exportAbort = null;
+          cleanupExportState(null);
+          currentTime = 0;
+          masterRenderer.renderFrame(0);
+          updateUIForTime(0, true);
         }
       }
 
-      function cleanupExportState(canvasStream) {
+      function cleanupExportState(_canvasStream) {
         isExporting = false;
-        activeVideoTrack = null;
         exportVideoBtn.disabled = false;
         replayBtn.disabled = false;
         timelineScrubber.disabled = false;
-        exportBtnText.textContent = "Export WebM + MP4 60FPS (30s)";
-        engineStatePill.classList.remove("recording");
-        engineStateLabel.textContent = "EXPORT SIAP · 60FPS CFR";
-
-        if (canvasStream) {
-          canvasStream.getVideoTracks().forEach((t) => t.stop());
+        if (exportAudioMode === "with-music") {
+          exportBtnText.textContent = "Export WebM + MP4 (Dengan Musik)";
+        } else if (exportAudioMode === "no-music") {
+          exportBtnText.textContent = "Export WebM + MP4 (Tanpa Musik)";
+        } else {
+          exportBtnText.textContent = "Export WebM + MP4 (Mute / Hening)";
         }
+        engineStatePill.classList.remove("recording");
+        engineStateLabel.textContent = "STANDBY · SIAP";
+      }
+
+      function debugDeterminism() {
+        const ctx = canvas.getContext("2d");
+        const hash = () => {
+          const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+          let h = 2166136261;
+          for (let i = 0; i < d.length; i += 97) { h ^= d[i]; h = Math.imul(h, 16777619); }
+          return h >>> 0;
+        };
+        masterRenderer.beatLevel = 0; masterRenderer.smoothBeat = 0;
+        masterRenderer.renderFrame(12.5); const a = hash();
+        masterRenderer.renderFrame(3.0);  masterRenderer.renderFrame(27.0);
+        masterRenderer.smoothBeat = 0; masterRenderer.beatLevel = 0;
+        masterRenderer.renderFrame(12.5); const b = hash();
+        console.log("DETERMINISTIK:", a === b, a, b);
+        return { deterministic: a === b, a, b };
       }
 
       // Event Listeners
@@ -3523,7 +3504,19 @@ export function initExplainerEngine(): () => void {
         if (on && isPlaying) {
           audioEngine.playSoundtrack(currentTime);
         }
+        // Sinkronkan mode ekspor dengan tombol preview
+        setExportAudioMode(on ? "with-music" : "no-music");
       });
+
+      if (exportOptWithMusic) {
+        exportOptWithMusic.addEventListener("click", () => setExportAudioMode("with-music"));
+      }
+      if (exportOptNoMusic) {
+        exportOptNoMusic.addEventListener("click", () => setExportAudioMode("no-music"));
+      }
+      if (exportOptMute) {
+        exportOptMute.addEventListener("click", () => setExportAudioMode("mute"));
+      }
 
       volumeSlider.addEventListener("input", (e) => {
         audioEngine.init();
@@ -3540,14 +3533,12 @@ export function initExplainerEngine(): () => void {
         startVideoExport();
       });
 
-      convertMp4Btn.addEventListener("click", () => {
-        convertMasterToMp4(true);
-      });
-
-      const bestCodec = detectBestExportCodec();
-      if (bestCodec.mimeType) {
-        codecBadge.textContent = "WEBM + MP4 · 60.00 FPS CFR";
+      if (convertMp4Btn) {
+        convertMp4Btn.style.display = "none";
       }
+
+      // Inisialisasi tampilan mode ekspor audio
+      setExportAudioMode("with-music");
 
       const renderInitialPoster = () => {
         masterRenderer.vfx.tryBuildOfficialLogoSprites();
@@ -3567,10 +3558,14 @@ export function initExplainerEngine(): () => void {
     startPlayback(true);
   }
 
+  (window as any).debugDeterminism = debugDeterminism;
   (window as any).__EXPLAINER_CONTROLLER__ = {
     stageCanvas: canvas,
     stageCtx: masterRenderer.ctx,
     masterRenderer,
+    audioEngine,
+    debugDeterminism,
+    startVideoExport,
     renderAt: (t: number) => {
       currentTime = clamp(t, 0, DURATION);
       masterRenderer.renderFrame(currentTime);
