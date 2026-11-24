@@ -5,7 +5,7 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import esbuild from "esbuild";
-import { buildV9StandaloneHtmlDocument } from "./src/grok_video_9_html_builder";
+import { buildV9StandaloneHtmlDocument } from "./src/videos/video-09-grok-directors-cut/grok_video_9_html_builder";
 
 async function startServer() {
   const app = express();
@@ -167,7 +167,7 @@ async function startServer() {
     try {
       const entryPoint = path.resolve(
         process.cwd(),
-        "src/grok_video_9_standalone.ts"
+        "src/videos/video-09-grok-directors-cut/grok_video_9_standalone.ts"
       );
       const buildResult = await esbuild.build({
         entryPoints: [entryPoint],

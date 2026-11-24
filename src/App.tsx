@@ -1,498 +1,149 @@
-import { useEffect, useState } from "react";
-import { OFFICIAL_CLAUDE_LOGO_SRC } from "./engine/assetsData.ts";
-import { initExplainerEngine } from "./engine/explainerRuntime.ts";
-import Gemini4ArgonView from "./Gemini4ArgonView.tsx";
-import Gemini4ArgonVideo3View from "./Gemini4ArgonVideo3View.tsx";
-import { ChatGPTVideo4View } from "./ChatGPTVideo4View.tsx";
-import { GeminiVideo5View } from "./GeminiVideo5View.tsx";
-import { MasterVideo6View } from "./MasterVideo6View.tsx";
-import { ChatGPTVideo7View } from "./ChatGPTVideo7View.tsx";
-import { GrokVideo8View } from "./GrokVideo8View.tsx";
-import { GrokVideo9View } from "./GrokVideo9View.tsx";
-import { ChatGPTVideo10View } from "./ChatGPTVideo10View.tsx";
-import { ClaudeVideo11View } from "./ClaudeVideo11View.tsx";
+import { useState, type ComponentType } from "react";
+import { ClaudeOpusVideo1View } from "./videos/video-01-claude-opus/ClaudeOpusVideo1View.tsx";
+import Gemini4ArgonView from "./videos/video-02-gemini-argon/Gemini4ArgonView.tsx";
+import Gemini4ArgonVideo3View from "./videos/video-03-gemini-argon-promo/Gemini4ArgonVideo3View.tsx";
+import { ChatGPTVideo4View } from "./videos/video-04-chatgpt-motion/ChatGPTVideo4View.tsx";
+import { GeminiVideo5View } from "./videos/video-05-gemini-recreation/GeminiVideo5View.tsx";
+import { MasterVideo6View } from "./videos/video-06-master-fusion/MasterVideo6View.tsx";
+import { ChatGPTVideo7View } from "./videos/video-07-chatgpt-4ling/ChatGPTVideo7View.tsx";
+import { GrokVideo8View } from "./videos/video-08-grok-v8/GrokVideo8View.tsx";
+import { GrokVideo9View } from "./videos/video-09-grok-directors-cut/GrokVideo9View.tsx";
+import { ChatGPTVideo10View } from "./videos/video-10-chatgpt-4ling-v10/ChatGPTVideo10View.tsx";
+import { ClaudeVideo11View } from "./videos/video-11-claude-anthropic/ClaudeVideo11View.tsx";
 
-function Video1ClaudeOpusStudio() {
-  useEffect(() => {
-    const cleanup = initExplainerEngine();
-    return () => {
-      cleanup();
-    };
-  }, []);
+type VideoId =
+  | "v1"
+  | "v2"
+  | "v3"
+  | "v4"
+  | "v5"
+  | "v6"
+  | "v7"
+  | "v8"
+  | "v9"
+  | "v10"
+  | "v11";
 
-  return (
-    <div id="top" className="studio-shell">
-      {/* HEADER */}
-      <header className="top-header">
-        <div className="brand-cluster">
-          <div className="brand-emblem" aria-hidden="true">
-            <img src={OFFICIAL_CLAUDE_LOGO_SRC} alt="Official Claude Logo" />
-          </div>
-          <div className="brand-titles">
-            <h1 className="brand-main-title">
-              CLAUDE OPUS 5.5 — CINEMATIC EXPLAINER
-            </h1>
-            <span className="brand-sub-title">
-              Video iOS 27 Liquid Glass Blur · 60FPS Preview &amp; 60FPS Export · Bahasa Indonesia
-            </span>
-          </div>
-        </div>
+interface VideoEntry {
+  id: VideoId;
+  queryNum: string;
+  testId: string;
+  activeClass: "active-v1" | "active-v2";
+  label: string;
+  Component: ComponentType;
+}
 
-        <div className="header-telemetry">
-          <div className="telemetry-pill" id="engineStatePill">
-            <span className="dot" id="engineStateDot"></span>
-            <span id="engineStateLabel">SIAP · STANDBY</span>
-          </div>
-          <div className="telemetry-pill">
-            <span id="qualityTierBadge">TIER: ULTRA · 1080×1920</span>
-          </div>
-          <div className="telemetry-pill">
-            <span id="fpsReadout">60 FPS · 2.1 MS</span>
-          </div>
-        </div>
-      </header>
+const STUDIO_VIDEOS: readonly VideoEntry[] = [
+  {
+    id: "v11",
+    queryNum: "11",
+    testId: "switch-video-11",
+    activeClass: "active-v1",
+    label: "VIDEO 11 · CLAUDE BY ANTHROPIC (24.0S · 7 SCENES · 1920×1080 · 60FPS)",
+    Component: ClaudeVideo11View,
+  },
+  {
+    id: "v10",
+    queryNum: "10",
+    testId: "switch-video-10",
+    activeClass: "active-v2",
+    label:
+      "VIDEO 10 · CHATGPT 4LING RUPIAH EXPLAINER · UPGRADED MOTION (19.5S · 9 SCENES · 1920×1080 · 60FPS)",
+    Component: ChatGPTVideo10View,
+  },
+  {
+    id: "v9",
+    queryNum: "9",
+    testId: "switch-video-9",
+    activeClass: "active-v2",
+    label:
+      "VIDEO 9 · GROK 4.7 DIRECTOR'S CUT · FILE_SCAN.PY · SPACEX (30.0S · EN · MP4/WEBM/HTML)",
+    Component: GrokVideo9View,
+  },
+  {
+    id: "v8",
+    queryNum: "8",
+    testId: "switch-video-8",
+    activeClass: "active-v2",
+    label:
+      "VIDEO 8 · GROK 4.7 ALEX HUTAJULU + BUILD BERKAS_SCAN.PY · SPACEX (24.0S · 1920×1080 · 60FPS)",
+    Component: GrokVideo8View,
+  },
+  {
+    id: "v7",
+    queryNum: "7",
+    testId: "switch-video-7",
+    activeClass: "active-v2",
+    label: "VIDEO 7 · CHATGPT 4LING RUPIAH EXPLAINER (19.5S · 1920×1080 · 60FPS)",
+    Component: ChatGPTVideo7View,
+  },
+  {
+    id: "v6",
+    queryNum: "6",
+    testId: "switch-video-6",
+    activeClass: "active-v2",
+    label: "VIDEO 6 · MASTER FUSION: V4 + DOCK GEMINI + V3 + V5 (73.63S · 1920×1080)",
+    Component: MasterVideo6View,
+  },
+  {
+    id: "v5",
+    queryNum: "5",
+    testId: "switch-video-5",
+    activeClass: "active-v2",
+    label: "VIDEO 5 · GEMINI 22.33S RECREATION (16:9 · 1280×720)",
+    Component: GeminiVideo5View,
+  },
+  {
+    id: "v4",
+    queryNum: "4",
+    testId: "switch-video-4",
+    activeClass: "active-v2",
+    label: "VIDEO 4 · CHATGPT 33.7S MOTION GRAPHICS (16:9 · 1920×1080)",
+    Component: ChatGPTVideo4View,
+  },
+  {
+    id: "v3",
+    queryNum: "3",
+    testId: "switch-video-3",
+    activeClass: "active-v2",
+    label: "VIDEO 3 · GEMINI 4 ARGON 52.5S PROMO (16:9 · 60FPS · 13 Scenes)",
+    Component: Gemini4ArgonVideo3View,
+  },
+  {
+    id: "v2",
+    queryNum: "2",
+    testId: "switch-video-2",
+    activeClass: "active-v2",
+    label: "VIDEO 2 · GEMINI 4 ARGON 30S SHOWCASE (16:9 · 1920×1080)",
+    Component: Gemini4ArgonView,
+  },
+  {
+    id: "v1",
+    queryNum: "1",
+    testId: "switch-video-1",
+    activeClass: "active-v1",
+    label: "VIDEO 1 · CLAUDE OPUS 5.5 (9:16 · 1080×1920)",
+    Component: ClaudeOpusVideo1View,
+  },
+];
 
-      {/* MAIN WORKSPACE */}
-      <main className="workspace-grid">
-        {/* CENTER 9:16 PREVIEW & BOTTOM CONTROLS */}
-        <section className="stage-column" aria-label="Cinematic Explainer Stage">
-          <div className="viewport-wrapper">
-            <div className="viewport-badge">
-              BUFFER ASLI: 1080 × 1920 PX · iOS 27 LIQUID GLASS VIDEO
-            </div>
-            <div className="viewport-scene-pill" id="liveSceneBadge">
-              SCENE 01 — CINEMATIC INTRO
-            </div>
-
-              <div className="canvas-frame-container">
-                <canvas id="stageCanvas" width={1080} height={1920}></canvas>
-
-                {/* Initial Play Overlay */}
-                <div className="stage-overlay" id="stageOverlay">
-                  <div className="overlay-glass-card">
-                    <button
-                      type="button"
-                      className="launch-play-btn"
-                      id="overlayPlayBtn"
-                    >
-                      <svg viewBox="0 0 24 24">
-                        <polygon points="6,4 20,12 6,20"></polygon>
-                      </svg>
-                      <span>PLAY EXPLAINER (30S)</span>
-                    </button>
-                    <div className="overlay-caption">
-                      iOS 27 Liquid Glass Video Engine · 60 FPS Preview &amp; Export
-                    </div>
-                    <div className="overlay-sub">
-                      Motion graphics 1080×1920 dengan efek optik iOS 27 Liquid Glass
-                      (real-time optical blur, refraksi lensa &amp; specular rim) di dalam video.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* BOTTOM TRANSPORT BAR */}
-            <div className="transport-panel">
-              <div className="timeline-container">
-                <div className="timeline-scene-ticks" id="sceneTicksContainer">
-                  <button
-                    type="button"
-                    className="scene-tick active"
-                    data-scene-start="0"
-                  >
-                    <span>01 · INTRO ASLI</span>
-                    <span>00:00</span>
-                  </button>
-                  <button type="button" className="scene-tick" data-scene-start="5">
-                    <span>02 · KENALAN</span>
-                    <span>00:05</span>
-                  </button>
-                  <button type="button" className="scene-tick" data-scene-start="10">
-                    <span>03 · APA ITU OPUS 5.5</span>
-                    <span>00:10</span>
-                  </button>
-                  <button type="button" className="scene-tick" data-scene-start="15">
-                    <span>04 · CARA PAKAI</span>
-                    <span>00:15</span>
-                  </button>
-                  <button type="button" className="scene-tick" data-scene-start="20">
-                    <span>05 · KELEBIHAN &amp; PENUTUP</span>
-                    <span>00:20</span>
-                  </button>
-                </div>
-
-                <div className="timeline-track-wrap">
-                  <input
-                    type="range"
-                    id="timelineScrubber"
-                    className="timeline-slider"
-                    min="0"
-                    max="30"
-                    step="0.01"
-                    defaultValue="0"
-                    aria-label="Timeline Progress (0 to 30 seconds)"
-                  />
-                </div>
-              </div>
-
-              <div className="transport-controls-row">
-                <div className="transport-left">
-                  <button type="button" className="ctrl-btn primary" id="playPauseBtn">
-                    <svg id="playPauseIcon" viewBox="0 0 24 24">
-                      <polygon points="6,4 20,12 6,20"></polygon>
-                    </svg>
-                    <span id="playPauseText">Play</span>
-                  </button>
-
-                  <button type="button" className="ctrl-btn" id="replayBtn">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"></path>
-                    </svg>
-                    <span>Replay</span>
-                  </button>
-
-                  <div className="timecode-readout" id="timecodeDisplay">
-                    <span id="currentTimeText">00:00.00</span>
-                    <span className="dim"> / 00:30.00</span>
-                  </div>
-                </div>
-
-                <div className="transport-right">
-                  <div className="volume-cluster">
-                    <button
-                      type="button"
-                      className="ctrl-btn ctrl-btn-compact"
-                      id="muteToggleBtn"
-                    >
-                      <svg id="muteIcon" viewBox="0 0 24 24">
-                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path>
-                      </svg>
-                      <span id="muteBtnText">Mute</span>
-                    </button>
-                    <input
-                      type="range"
-                      id="volumeSlider"
-                      className="volume-slider"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      defaultValue="0.85"
-                      aria-label="Master Volume"
-                    />
-                    <span className="volume-pct" id="volumePctText">
-                      85%
-                    </span>
-                    <button
-                      type="button"
-                      className="ctrl-btn ctrl-btn-compact"
-                      id="musicToggleBtn"
-                    >
-                      <span id="musicToggleText">Musik: ON</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* RIGHT EXPORT & TECHNICAL PANEL */}
-          <aside
-            className="inspector-panel"
-            aria-label="Technical Specifications and Video Export"
-          >
-            <div className="panel-section">
-              <div className="section-heading">
-                <span>Spesifikasi &amp; Performa</span>
-                <span className="accent-tag">iOS 27 VIDEO GLASS</span>
-              </div>
-              <div className="specs-grid">
-                <div className="spec-item">
-                  <span className="spec-label">Resolusi Output</span>
-                  <span className="spec-value orange">1080 × 1920 (9:16)</span>
-                </div>
-                <div className="spec-item">
-                  <span className="spec-label">Durasi Master</span>
-                  <span className="spec-value">30.00 Detik Tepat</span>
-                </div>
-                <div className="spec-item">
-                  <span className="spec-label">Target Frame Rate</span>
-                  <span className="spec-value">60 FPS Preview &amp; Export</span>
-                </div>
-                <div className="spec-item">
-                  <span className="spec-label">Frame Time / Drop</span>
-                  <span className="spec-value" id="frameTimeReadout">
-                    ~2.0 ms · 0 drop
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="panel-section">
-              <div className="section-heading">
-                <span>Status Audio Sintetis</span>
-                <span className="accent-tag" id="audioStatusBadge">
-                  STANDBY
-                </span>
-              </div>
-              <div className="audio-status-box">
-                <div className="audio-status-top">
-                  <span id="activeCueLabel" className="audio-cue-label">
-                    Soundtrack User · Beat Sync · SFX di bawah musik
-                  </span>
-                  <span id="sampleRateLabel" className="audio-rate-label">
-                    48.0 kHz
-                  </span>
-                </div>
-                <div id="soundtrackStatus" className="soundtrack-status-label">
-                  Soundtrack: audio kamu · 30.0s (dari 41.8s) · fade-out 28.5s ·
-                  beat-reactive
-                </div>
-                <div className="audio-bars" id="audioVisualizerBars">
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                  <div className="audio-bar"></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="panel-section">
-              <div className="section-heading">
-                <span>Alur Storyboard 30 Detik</span>
-                <span className="accent-tag">5 SCENE</span>
-              </div>
-              <div className="storyboard-list" id="storyboardList">
-                <div className="storyboard-row active" data-jump="0">
-                  <span className="sc-name">01 · Intro Sinematik Asli</span>
-                  <span className="sc-time">00:00 – 00:05</span>
-                </div>
-                <div className="storyboard-row" data-jump="5">
-                  <span className="sc-name">02 · Kenalan dengan Opus 5.5</span>
-                  <span className="sc-time">00:05 – 00:10</span>
-                </div>
-                <div className="storyboard-row" data-jump="10">
-                  <span className="sc-name">03 · Apa Itu Claude Opus 5.5?</span>
-                  <span className="sc-time">00:10 – 00:15</span>
-                </div>
-                <div className="storyboard-row" data-jump="15">
-                  <span className="sc-name">04 · Cara Menggunakan Claude</span>
-                  <span className="sc-time">00:15 – 00:20</span>
-                </div>
-                <div className="storyboard-row" data-jump="20">
-                  <span className="sc-name">05 · Kelebihan &amp; Final Reveal</span>
-                  <span className="sc-time">00:20 – 00:30</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="panel-section">
-              <div className="section-heading">
-                <span>Fakta Kunci Opus 5.5</span>
-                <span className="accent-tag">TERVERIFIK</span>
-              </div>
-              <div className="facts-box">
-                <div>
-                  <strong>Rilis:</strong> 22 September 2026 — model pertama keluarga
-                  Claude 5.5
-                </div>
-                <div>
-                  <strong>Model ID:</strong>{" "}
-                  <span className="mono-inline">claude-opus-5-5</span>
-                </div>
-                <div>
-                  <strong>Harga:</strong> $4 input / $20 output per 1 juta token (Opus 5:
-                  $5/$25)
-                </div>
-                <div>
-                  <strong>Konteks:</strong> 1 juta token · output maks 128 ribu token
-                </div>
-                <div>
-                  <strong>Kecepatan:</strong> output &gt;30% lebih cepat dari Opus 5 ·
-                  thinking adaptif selalu aktif
-                </div>
-                <div>
-                  <strong>Benchmark:</strong> FrontierCode 54,6% · GDPval 1846 Elo
-                </div>
-                <div>
-                  <strong>Tersedia:</strong> Claude API, Amazon Bedrock, Google Vertex
-                  AI, Microsoft Foundry
-                </div>
-                <div className="facts-source">
-                  Sumber: pengumuman Anthropic, 22 Sep 2026. Angka benchmark adalah klaim
-                  Anthropic.
-                </div>
-              </div>
-            </div>
-
-            <div className="panel-section">
-              <div className="section-heading">
-                <span>Video Export Engine</span>
-                <span className="accent-tag" id="codecBadge">
-                  WEBM + MP4 · 60.00 FPS CFR
-                </span>
-              </div>
-              <div className="export-card">
-                {/* Audio Export Selector: Dengan Musik / Tanpa Musik / Mute */}
-                <div className="export-audio-selector">
-                  <div className="export-audio-label">
-                    <span>Audio Video:</span>
-                    <span id="exportAudioModeBadge" className="export-audio-badge">
-                      DENGAN MUSIK
-                    </span>
-                  </div>
-                  <div
-                    className="export-audio-options"
-                    role="radiogroup"
-                    aria-label="Pilihan Audio Ekspor"
-                  >
-                    <button
-                      type="button"
-                      className="export-audio-opt active"
-                      id="exportOptWithMusic"
-                      data-mode="with-music"
-                      title="Sertakan lagu soundtrack + SFX sinematik"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                      </svg>
-                      <span>Dengan Musik</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="export-audio-opt"
-                      id="exportOptNoMusic"
-                      data-mode="no-music"
-                      title="Hanya efek suara (SFX) & drone tanpa musik latar"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M4.27 3L3 4.27l9 9v.28c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4v-1.73l7.73 7.73L23 21.73 4.27 3zM14 7h4V3h-6v5.18l2 2V7z" />
-                      </svg>
-                      <span>Tanpa Musik</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="export-audio-opt"
-                      id="exportOptMute"
-                      data-mode="mute"
-                      title="Hening total tanpa audio track (video murni)"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-                      </svg>
-                      <span>Mute</span>
-                    </button>
-                  </div>
-                </div>
-
-                <button type="button" className="export-btn" id="exportVideoBtn">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="12" r="8"></circle>
-                  </svg>
-                  <span id="exportBtnText">Export WebM + MP4 60FPS (30s)</span>
-                </button>
-
-                <a
-                  id="downloadVideoLink"
-                  className="download-btn"
-                  href="#top"
-                  download="claude_opus_5_5_explainer_60fps.webm"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"></path>
-                  </svg>
-                  <span id="downloadBtnText">Download WebM 60FPS (.webm)</span>
-                </a>
-
-                <button
-                  type="button"
-                  className="export-btn mp4-btn"
-                  id="convertMp4Btn"
-                  style={{ display: "none" }}
-                  disabled
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"></path>
-                  </svg>
-                  <span id="convertMp4BtnText">Convert ke MP4 60FPS (H.264)</span>
-                </button>
-
-                <a
-                  id="downloadMp4Link"
-                  className="download-btn"
-                  href="#top"
-                  download="claude_opus_5_5_explainer_60fps.mp4"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"></path>
-                  </svg>
-                  <span id="downloadMp4BtnText">Download MP4 60FPS (.mp4)</span>
-                </a>
-
-                <p className="export-note" id="mp4StatusMsg">
-                  Klik Export untuk merender 1.800 frame 60.00 FPS Constant Frame Rate (WebM + H.264 MP4 siap diunduh sekaligus).
-                </p>
-
-                <div className="export-progress-wrap">
-                  <div className="export-progress-bar-bg">
-                    <div
-                      className="export-progress-bar-fill"
-                      id="exportProgressFill"
-                    ></div>
-                  </div>
-                  <div className="export-status-text">
-                    <span id="exportStatusMsg">
-                      Siap merender 1.800 frame 1080×1920 60.00 FPS CFR (0% drop)
-                    </span>
-                    <span id="exportPctMsg">0%</span>
-                  </div>
-                </div>
-
-                <p className="export-note">
-                  <strong>Export Engine v6 (Deterministic Frame-by-Frame 60.00 FPS CFR):</strong>{" "}
-                  merender tepat 1.800 frame satu per satu dengan timestamp eksak (WebCodecs + mp4-muxer + webm-muxer)
-                  serta audio offline 48 kHz dan beat track terhitung deterministik. WebM (VP9/VP8) dan MP4 (H.264 High/AAC)
-                  dibuat bersamaan langsung dari frame yang sama tanpa frame drop.
-                </p>
-              </div>
-            </div>
-          </aside>
-        </main>
-    </div>
-  );
+function resolveInitialVideo(): VideoId {
+  if (typeof window !== "undefined") {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get("video");
+    if (requested) {
+      const matched = STUDIO_VIDEOS.find((entry) => entry.queryNum === requested);
+      if (matched) return matched.id;
+    }
+  }
+  return "v11";
 }
 
 export default function App() {
-  const [activeVideo, setActiveVideo] = useState<
-    "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | "v8" | "v9" | "v10" | "v11"
-  >(() => {
-    if (typeof window !== "undefined") {
-      if (window.location.search.includes("video=11")) return "v11";
-      if (window.location.search.includes("video=10")) return "v10";
-      if (window.location.search.includes("video=1")) return "v1";
-      if (window.location.search.includes("video=2")) return "v2";
-      if (window.location.search.includes("video=3")) return "v3";
-      if (window.location.search.includes("video=4")) return "v4";
-      if (window.location.search.includes("video=5")) return "v5";
-      if (window.location.search.includes("video=6")) return "v6";
-      if (window.location.search.includes("video=7")) return "v7";
-      if (window.location.search.includes("video=8")) return "v8";
-      if (window.location.search.includes("video=9")) return "v9";
-    }
-    return "v11";
-  });
+  const [activeVideo, setActiveVideo] = useState<VideoId>(resolveInitialVideo);
+  const currentEntry =
+    STUDIO_VIDEOS.find((entry) => entry.id === activeVideo) ?? STUDIO_VIDEOS[0];
+  const ActiveView = currentEntry.Component;
 
   return (
     <div>
@@ -501,122 +152,21 @@ export default function App() {
           <span>AI STUDIO PRODUCTION SUITE</span>
         </div>
         <div className="switcher-tabs">
-          <button
-            type="button"
-            data-testid="switch-video-11"
-            className={`switcher-tab-btn ${activeVideo === "v11" ? "active-v1" : ""}`}
-            onClick={() => setActiveVideo("v11")}
-          >
-            <span>VIDEO 11 · CLAUDE BY ANTHROPIC (24.0S · 7 SCENES · 1920×1080 · 60FPS)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-10"
-            className={`switcher-tab-btn ${activeVideo === "v10" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v10")}
-          >
-            <span>VIDEO 10 · CHATGPT 4LING RUPIAH EXPLAINER · UPGRADED MOTION (19.5S · 9 SCENES · 1920×1080 · 60FPS)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-9"
-            className={`switcher-tab-btn ${activeVideo === "v9" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v9")}
-          >
-            <span>VIDEO 9 · GROK 4.7 DIRECTOR&apos;S CUT · FILE_SCAN.PY · SPACEX (30.0S · EN · MP4/WEBM/HTML)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-8"
-            className={`switcher-tab-btn ${activeVideo === "v8" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v8")}
-          >
-            <span>VIDEO 8 · GROK 4.7 ALEX HUTAJULU + BUILD BERKAS_SCAN.PY · SPACEX (24.0S · 1920×1080 · 60FPS)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-7"
-            className={`switcher-tab-btn ${activeVideo === "v7" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v7")}
-          >
-            <span>VIDEO 7 · CHATGPT 4LING RUPIAH EXPLAINER (19.5S · 1920×1080 · 60FPS)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-6"
-            className={`switcher-tab-btn ${activeVideo === "v6" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v6")}
-          >
-            <span>VIDEO 6 · MASTER FUSION: V4 + DOCK GEMINI + V3 + V5 (73.63S · 1920×1080)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-5"
-            className={`switcher-tab-btn ${activeVideo === "v5" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v5")}
-          >
-            <span>VIDEO 5 · GEMINI 22.33S RECREATION (16:9 · 1280×720)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-4"
-            className={`switcher-tab-btn ${activeVideo === "v4" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v4")}
-          >
-            <span>VIDEO 4 · CHATGPT 33.7S MOTION GRAPHICS (16:9 · 1920×1080)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-3"
-            className={`switcher-tab-btn ${activeVideo === "v3" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v3")}
-          >
-            <span>VIDEO 3 · GEMINI 4 ARGON 52.5S PROMO (16:9 · 60FPS · 13 Scenes)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-2"
-            className={`switcher-tab-btn ${activeVideo === "v2" ? "active-v2" : ""}`}
-            onClick={() => setActiveVideo("v2")}
-          >
-            <span>VIDEO 2 · GEMINI 4 ARGON 30S SHOWCASE (16:9 · 1920×1080)</span>
-          </button>
-          <button
-            type="button"
-            data-testid="switch-video-1"
-            className={`switcher-tab-btn ${activeVideo === "v1" ? "active-v1" : ""}`}
-            onClick={() => setActiveVideo("v1")}
-          >
-            <span>VIDEO 1 · CLAUDE OPUS 5.5 (9:16 · 1080×1920)</span>
-          </button>
+          {STUDIO_VIDEOS.map((video) => (
+            <button
+              key={video.id}
+              type="button"
+              data-testid={video.testId}
+              className={`switcher-tab-btn ${activeVideo === video.id ? video.activeClass : ""}`}
+              onClick={() => setActiveVideo(video.id)}
+            >
+              <span>{video.label}</span>
+            </button>
+          ))}
         </div>
       </nav>
 
-      {activeVideo === "v11" ? (
-        <ClaudeVideo11View />
-      ) : activeVideo === "v10" ? (
-        <ChatGPTVideo10View />
-      ) : activeVideo === "v9" ? (
-        <GrokVideo9View />
-      ) : activeVideo === "v8" ? (
-        <GrokVideo8View />
-      ) : activeVideo === "v7" ? (
-        <ChatGPTVideo7View />
-      ) : activeVideo === "v6" ? (
-        <MasterVideo6View />
-      ) : activeVideo === "v5" ? (
-        <GeminiVideo5View />
-      ) : activeVideo === "v4" ? (
-        <ChatGPTVideo4View />
-      ) : activeVideo === "v3" ? (
-        <Gemini4ArgonVideo3View />
-      ) : activeVideo === "v2" ? (
-        <Gemini4ArgonView />
-      ) : (
-        <Video1ClaudeOpusStudio />
-      )}
+      <ActiveView />
     </div>
   );
 }
-
-
